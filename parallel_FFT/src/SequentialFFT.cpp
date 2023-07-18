@@ -32,6 +32,7 @@ void SequentialFFT::transform() {
     isRecursive = !isRecursive;
 }
 
+// A recursive implementation for FFT
 void SequentialFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
     if (n <= 1) {
         return;
@@ -47,6 +48,36 @@ void SequentialFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
         std::complex<real> t((std::complex<real>)std::polar(1.0, -2*M_PI*i/n) * odd[i]);
         x[i] = even[i] + t;
         x[i+n/2] = even[i] - t;
+    }
+}
+
+// An iterative implementation for FFT
+	void SequentialFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
+    // Perform the recursive FFT using an iterative approach
+    unsigned int numBits = static_cast<unsigned int>(log2(n));
+    for (unsigned int i = 0; i < n; i++) 
+    {
+        unsigned int j = 0;
+        for (unsigned int k = 0; k < numBits; k++) {
+            j = (j << 1) | ((i >> k) & 1U);
+        }
+        if (j > i) {
+            std::swap(x[i], x[j]);
+        }
+    }
+    for (unsigned int s = 1; s <= numBits; s++) {
+        unsigned int m = 1U << s;
+        std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
+        for (unsigned int k = 0; k < n; k += m) {
+            std::complex<real> w = 1.0;
+            for (unsigned int j = 0; j < m / 2; j++) {
+                std::complex<real> t = w * x[k + j + m / 2];
+                std::complex<real> u = x[k + j];
+                x[k + j] = u + t;
+                x[k + j + m / 2] = u - t;
+                w *= wm;
+            }
+        }
     }
 }
 
