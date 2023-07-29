@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++2a -Wall #-Wsuggest-override -Wnon-virtual-dtor
+CXXFLAGS = -std=c++2a -Wall -fopenmp #-Wsuggest-override -Wnon-virtual-dtor
 # LDFLAGS = -lfftw3 -lGetPot
 
 SRCS_LIB := $(filter-out src/main_test.cpp, $(wildcard src/*.cpp))
@@ -14,11 +14,11 @@ libourparallelFFT.a: $(OBJ_LIB)
 
 # test our library
 test.exe: $(OBJS_LIB) obj/main_test.o # tests/obj/main_test.o $(wildcard tests/obj/*.o)
-	$(CXX) $(LDFLAGS) $^ -o test.exe
+	$(CXX) $(LDFLAGS) -fopenmp $^ -o test.exe
 	
 	
 obj/%.o : src/%.cpp
-	$(CXX) -c $(CXXFLAGS)  $^ -o $@
+	$(CXX) -c $(CXXFLAGS) -fopenmp $^ -o $@
 	
 	
 clear:

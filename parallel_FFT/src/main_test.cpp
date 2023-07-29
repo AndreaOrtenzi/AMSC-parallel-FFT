@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <vector>
+#include <omp.h> 
 
 #ifndef SEQ_IMPL
 #define SEQ_IMPL true
@@ -212,6 +213,9 @@ int main(int argc, char *argv[]) {
         std::cout << "--------------------------------\n" << endl;
     }
     #endif
+
+    //parallel implementation: 
+
 
     return 0;
 }
