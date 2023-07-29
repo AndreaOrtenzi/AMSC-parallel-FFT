@@ -5,3 +5,9 @@
 ## Authors
 * Andrea Ortenzi
 * Emanuele Broggini
+
+## Implementations
+
+## Images' compression
+
+## Conclusions
