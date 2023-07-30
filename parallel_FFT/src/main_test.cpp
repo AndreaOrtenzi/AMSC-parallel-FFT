@@ -34,6 +34,10 @@
 #define SEQ_IMPL true
 #endif
 
+#ifndef PAR_IMPL
+#define PAR_IMPL true
+#endif
+
 // #include "../inc/AbstractFFT.hpp"
 #if SEQ_IMPL
 #include "../inc/SequentialFFT.hpp"
@@ -215,7 +219,46 @@ int main(int argc, char *argv[]) {
     #endif
 
     //parallel implementation: 
+    #if PAR_IMPL
+    {
+        const string implementationName = "Parallel implementation";
+        std::cout << "----------------"<< implementationName <<"----------------" << endl;
 
+        unsigned int i = 0;
+        #if TIME_IMPL
+        total = 0.0;
+        for( i = 0; i < iterToTime; i++ ){
+        #endif
+        
+        ParallelFFT par_fft(xSpace, empty_vec);
+        
+        #if TIME_IMPL
+            begin = clock::now();
+        #endif
+
+        par_fft.transform();
+        
+        #if TIME_IMPL
+            double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
+            std::cout << "It took " << elapsed << unitTimeStr <<" in the execution number "<< i << endl;
+            total += elapsed;
+            DFT(xSpace.data(),xSpace.size());
+            #if CHECK_CORRECTNESS
+                checkCorrectness(implementationName, par_fft.getFrequencyValues(), xSpace);
+            #endif
+        #else
+        #if CHECK_CORRECTNESS
+            checkCorrectness(implementationName, par_fft.getFrequencyValues(), xFreq);
+        #endif
+        #endif
+        #if TIME_IMPL
+            fillArray(xSpace,i+1);
+        }
+        std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
+        #endif
+        std::cout << "--------------------------------\n" << endl;
+    }
+    #endif
 
     return 0;
 }

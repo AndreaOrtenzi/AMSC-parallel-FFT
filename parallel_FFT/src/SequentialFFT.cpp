@@ -53,7 +53,6 @@ void SequentialFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 
 // An iterative implementation for FFT.
 void SequentialFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
-    // Perform the recursive FFT using an iterative approach
     unsigned int numBits = static_cast<unsigned int>(log2(n));
     for (unsigned int i = 0; i < n; i++) 
     {
