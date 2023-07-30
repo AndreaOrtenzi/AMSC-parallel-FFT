@@ -62,9 +62,9 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 }
 
 // A parallel implementation of the FFT iterative method using OpenMP.
-void SequentialFFT::parallelFFT(std::complex<real> x[], const unsigned int n){
+void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n){
     unsigned int numBits = static_cast<unsigned int>(log2(n));
-    unsigned int numThreads = static_cast<unsigned int> ceil(log2(n));
+    unsigned int numThreads = static_cast<unsigned int> (ceil(log2(n)));
 
     #pragma omp parallel for num_threads(numThreads)
     for (unsigned int i = 0; i < n; i++) {
@@ -104,18 +104,28 @@ void ParallelFFT::iTransform() {
     // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(N);
 
-    unsigned int numThreads = static_cast<unsigned int> ceil(log2(n)); ; // Set as desired number of threads the nearest integer number of log2(n)
+    unsigned int numThreads = static_cast<unsigned int> (ceil(log2(N)));
+    std::vector<std::complex<real>> thread_partialsums(N * numThreads, std::complex<real>(0, 0));
 
-    #pragma omp parallel for num_threads(numThreads)
+    #pragma omp parallel num_threads(numThreads)
+    {
+        unsigned int tid = omp_get_thread_num();
+        for (unsigned int n = 0; n < N; ++n) {
+            std::complex<real> sum(0, 0);
+            for (unsigned int k = 0; k < N; ++k) {
+                std::complex<real> term = frequencyValues[k] * std::exp(2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
+                sum += term;
+            }
+            thread_partialsums[tid * N + n] = sum;
+        }
+    }
+
+    // Combine partial sums from different threads
     for (unsigned int n = 0; n < N; ++n) {
         std::complex<real> sum(0, 0);
-
-        #pragma omp parallel for reduction(+:sum)
-        for (unsigned int k = 0; k < N; ++k) {
-            std::complex<real> term = frequencyValues[k] * std::exp(2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
-            sum += term;
+        for (unsigned int t = 0; t < numThreads; t++) {
+            sum += thread_partialsums[t * N + n];
         }
-
         spatialValues[n] = sum / static_cast<real>(N);
     }
 }
