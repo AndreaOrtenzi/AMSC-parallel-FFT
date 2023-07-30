@@ -43,6 +43,10 @@
 #include "../inc/SequentialFFT.hpp"
 #endif
 
+#if PAR_IMPL
+#include "../inc/ParallelFFT.hpp"
+#endif
+
 // #include <ctime>
 
 // recursiveFFT function requires the input size n to be
@@ -218,7 +222,7 @@ int main(int argc, char *argv[]) {
     }
     #endif
 
-    const vector<complex<Real>> empty_vector(vectorLength);
+    const vector<complex<Real>> empty_vec(vectorLength);
     //parallel implementation: 
     #if PAR_IMPL
     {
@@ -231,7 +235,7 @@ int main(int argc, char *argv[]) {
         for( i = 0; i < iterToTime; i++ ){
         #endif
         
-        ParallelFFT par_fft(xSpace, empty_vector);
+        ParallelFFT par_fft(xSpace, empty_vec);
         
         #if TIME_IMPL
             begin = clock::now();
