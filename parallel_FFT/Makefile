@@ -18,7 +18,7 @@ test.exe: $(OBJS_LIB) obj/main_test.o # tests/obj/main_test.o $(wildcard tests/o
 	
 	
 obj/%.o : src/%.cpp
-	$(CXX) -c $(CXXFLAGS) -fopenmp $^ -o $@
+	$(CXX) -c $(CXXFLAGS) -fopenmp  $^ -o $@
 	
 	
 clear:
