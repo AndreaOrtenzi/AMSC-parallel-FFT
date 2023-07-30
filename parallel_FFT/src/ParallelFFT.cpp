@@ -62,9 +62,9 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 }
 
 // A parallel implementation of the FFT iterative method using OpenMP.
-void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n){
+void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
-    unsigned int numThreads = static_cast<unsigned int> (ceil(log2(n)));
+    unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
 
     #pragma omp parallel for num_threads(numThreads)
     for (unsigned int i = 0; i < n; i++) {
@@ -77,23 +77,19 @@ void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n){
         }
     }
 
-    #pragma omp parallel num_threads(numThreads)
-    {
-        #pragma omp for
-        for (unsigned int s = 1; s <= numBits; s++) {
-            unsigned int m = 1U << s;
-            std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
+    #pragma omp parallel for num_threads(numThreads)
+    for (unsigned int s = 1; s <= numBits; s++) {
+        unsigned int m = 1U << s;
+        std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
 
-            #pragma omp for
-            for (unsigned int k = 0; k < n; k += m) {
-                std::complex<real> w = 1.0;
-                for (unsigned int j = 0; j < m / 2; j++) {
-                    std::complex<real> t = w * x[k + j + m / 2];
-                    std::complex<real> u = x[k + j];
-                    x[k + j] = u + t;
-                    x[k + j + m / 2] = u - t;
-                    w *= wm;
-                }
+        for (unsigned int k = 0; k < n; k += m) {
+            std::complex<real> w = 1.0;
+            for (unsigned int j = 0; j < m / 2; j++) {
+                std::complex<real> t = w * x[k + j + m / 2];
+                std::complex<real> u = x[k + j];
+                x[k + j] = u + t;
+                x[k + j + m / 2] = u - t;
+                w *= wm;
             }
         }
     }
