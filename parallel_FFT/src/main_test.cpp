@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     // run my implementations:
-    const vector<complex<Real>> empty_vec(vectorLength);
+    const vector<complex<Real>> empty_vector(vectorLength);
 
     // sequential implementation:  
     #if SEQ_IMPL
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
         for( i = 0; i < iterToTime; i++ ){
         #endif
         
-        SequentialFFT fft(xSpace, empty_vec);
+        SequentialFFT fft(xSpace, empty_vector);
         
         #if TIME_IMPL
             begin = clock::now();
@@ -218,6 +218,7 @@ int main(int argc, char *argv[]) {
     }
     #endif
 
+    const vector<complex<Real>> empty_vector(vectorLength);
     //parallel implementation: 
     #if PAR_IMPL
     {
@@ -230,7 +231,7 @@ int main(int argc, char *argv[]) {
         for( i = 0; i < iterToTime; i++ ){
         #endif
         
-        ParallelFFT par_fft(xSpace, empty_vec);
+        ParallelFFT par_fft(xSpace, empty_vector);
         
         #if TIME_IMPL
             begin = clock::now();
