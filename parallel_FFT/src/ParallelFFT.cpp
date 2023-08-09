@@ -65,6 +65,7 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
     unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
+    // unsigned int numThreads = 4;
 
     #pragma omp parallel for num_threads(numThreads)
     for (unsigned int i = 0; i < n; i++) {

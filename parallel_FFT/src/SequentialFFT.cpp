@@ -65,7 +65,7 @@ void SequentialFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
         }
     }
     for (unsigned int s = 1; s <= numBits; s++) {
-        unsigned int m = 1U << s;
+        unsigned int m = 1U << s; 
         std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
         for (unsigned int k = 0; k < n; k += m) {
             std::complex<real> w = 1.0;
