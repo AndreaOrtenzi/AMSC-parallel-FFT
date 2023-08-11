@@ -1,6 +1,8 @@
 #include "../inc/ParallelFFT.hpp"
 #include <iostream>
 
+bool ParallelFFT::isRecursive = false;
+
 const std::vector<std::complex<real>>& ParallelFFT::getSpatialValues() const {
     return spatialValues;
 }
@@ -12,9 +14,44 @@ const std::vector<std::complex<real>>& ParallelFFT::getFrequencyValues() const {
 void ParallelFFT::transform() {
     // Perform the Fourier transform on the spatial values and store the result in the frequency values
     frequencyValues.resize(N);
-    std::cout<< "--start iterative parallel imp--" << std::endl;
-    frequencyValues = spatialValues;
-    iterativeFFT(frequencyValues.data(),frequencyValues.size());
+    if (isRecursive){
+        std::cout << "--start recursive imp--" << std::endl;
+        frequencyValues = spatialValues;
+        recursiveFFT(frequencyValues.data(),frequencyValues.size());
+    }
+    else {
+        std::cout<< "--start iterative parallel imp--" << std::endl;
+        frequencyValues = spatialValues;
+        iterativeFFT(frequencyValues.data(),frequencyValues.size());
+    }
+
+    isRecursive = !isRecursive;
+}
+
+// A parallel implementation of the FFT recursive method using OpenMP.
+void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
+    if (n <= 1) {
+        return;
+    }
+
+    // unsigned int numThreads = omp_get_max_threads();
+
+    #pragma omp parallel sections num_threads(2)
+    {
+        #pragma omp section
+        recursiveFFT(x, n / 2); // FFT on even-indexed elements
+
+        #pragma omp section
+        recursiveFFT(x + n / 2, n / 2); // FFT on odd-indexed elements
+    }
+
+    // Combine the results of the two subproblems
+    #pragma omp parallel for
+    for (unsigned int i = 0; i < n / 2; i++) {
+        std::complex<real> t((std::complex<real>)std::polar(1.0, -2 * M_PI * i / n) * x[i + n / 2]);
+        x[i] = x[i] + t;
+        x[i + n / 2] = x[i] - t;
+    }
 }
 
 
