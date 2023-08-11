@@ -20,14 +20,9 @@ void SequentialFFT::transform() {
         recursiveFFT(frequencyValues.data(),frequencyValues.size());
     }
     else{
-        for (unsigned int k = 0; k < N; ++k) {
-            std::complex<real> sum(0, 0);
-            for (unsigned int n = 0; n < N; ++n) {
-                std::complex<real> term = spatialValues[n] * std::exp(-2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
-                sum += term;
-            }
-            frequencyValues[k] = sum;
-        }
+        std::cout << "--start iterative imp--" << std::endl;
+        frequencyValues = spatialValues;
+        iterativeFFT(frequencyValues.data(),frequencyValues.size());
     }
     isRecursive = !isRecursive;
 }

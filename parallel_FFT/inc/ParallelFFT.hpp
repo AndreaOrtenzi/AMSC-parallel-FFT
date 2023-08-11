@@ -20,7 +20,5 @@ public:
     void iTransform() override;
 
 private:
-    void recursiveFFT(std::complex<real> x[], const unsigned int n);
     void iterativeFFT(std::complex<real> x[], const unsigned int n);
-    static bool isRecursive;
 };
