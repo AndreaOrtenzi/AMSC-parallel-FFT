@@ -33,26 +33,33 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
     if (n <= 1) {
         return;
     }
+    // Create vectors of even and odd indexes:
+    std::complex<real> even[n/2], odd[n/2];
+    for (unsigned int i = 0; i < n/2; i++) {
+        even[i] = x[2*i];
+        odd[i] = x[2*i+1];
+    }
 
-    unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
+    // Try with different number of threads:
+    unsigned int numThreads = 4;
+    // unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
     // unsigned int numThreads = omp_get_max_threads();
-    #pragma omp task shared(x) firstprivate(n)
+
     #pragma omp parallel sections num_threads(numThreads) 
     {
         #pragma omp section
-        recursiveFFT(x, n / 2); // FFT on even-indexed elements
+        recursiveFFT(even, n / 2); // FFT on even-indexed elements
 
         #pragma omp section
-        recursiveFFT(x + n / 2, n / 2); // FFT on odd-indexed elements
+        recursiveFFT(odd, n / 2); // FFT on odd-indexed elements
     }
 
-    #pragma omp taskwait
     // Combine the results of the two subproblems:
     #pragma omp parallel for schedule(static)
     for (unsigned int i = 0; i < n / 2; i++) {
-        std::complex<real> t((std::complex<real>)std::polar(1.0, -2 * M_PI * i / n) * x[i + n / 2]);
-        x[i] = x[i] + t;
-        x[i + n / 2] = x[i] - t;
+        std::complex<real> t((std::complex<real>)std::polar(1.0, -2 * M_PI * i / n) * odd[i]);
+        x[i] = even[i] + t;
+        x[i + n / 2] = even[i] - t;
     }
 }
 
