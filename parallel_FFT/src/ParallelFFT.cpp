@@ -20,7 +20,7 @@ void ParallelFFT::transform() {
         recursiveFFT(frequencyValues.data(),frequencyValues.size());
     }
     else {
-        std::cout<< "--start iterative parallel imp--" << std::endl;
+        std::cout<< "--start iterative imp--" << std::endl;
         frequencyValues = spatialValues;
         iterativeFFT(frequencyValues.data(),frequencyValues.size());
     }
@@ -34,9 +34,10 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
         return;
     }
 
+    unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
     // unsigned int numThreads = omp_get_max_threads();
-
-    #pragma omp parallel sections num_threads(2)
+    #pragma omp task shared(x) firstprivate(n)
+    #pragma omp parallel sections num_threads(numThreads) 
     {
         #pragma omp section
         recursiveFFT(x, n / 2); // FFT on even-indexed elements
@@ -45,8 +46,9 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
         recursiveFFT(x + n / 2, n / 2); // FFT on odd-indexed elements
     }
 
-    // Combine the results of the two subproblems
-    #pragma omp parallel for
+    #pragma omp taskwait
+    // Combine the results of the two subproblems:
+    #pragma omp parallel for schedule(static)
     for (unsigned int i = 0; i < n / 2; i++) {
         std::complex<real> t((std::complex<real>)std::polar(1.0, -2 * M_PI * i / n) * x[i + n / 2]);
         x[i] = x[i] + t;
@@ -59,11 +61,13 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
     // Try with different numbers of threads:
-    unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
-    // unsigned int numThreads = 4;
+    // unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
+    unsigned int numThreads = 2;
     // unsigned int numThreads = n;
 
-    #pragma omp parallel for num_threads(numThreads)
+    // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
+    #pragma omp task shared(x) firstprivate(n)
+    #pragma omp parallel for num_threads(numThreads) schedule(static)
     for (unsigned int i = 0; i < n; i++) {
         unsigned int j = 0;
         for (unsigned int k = 0; k < numBits; k++) {
@@ -74,11 +78,11 @@ void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
         }
     }
 
-    #pragma omp parallel for num_threads(numThreads)
     for (unsigned int s = 1; s <= numBits; s++) {
         unsigned int m = 1U << s;
-        std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
-
+        std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m)); // Twiddle factor
+    
+    #pragma omp parallel for num_threads(numThreads) schedule(static)
         for (unsigned int k = 0; k < n; k += m) {
             std::complex<real> w = 1.0;
             for (unsigned int j = 0; j < m / 2; j++) {
@@ -94,7 +98,7 @@ void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
 
 
 void ParallelFFT::iTransform() {
-    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
+    //Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(N);
 
     unsigned int numThreads = static_cast<unsigned int> (ceil(log2(N)));
@@ -113,7 +117,7 @@ void ParallelFFT::iTransform() {
         }
     }
 
-    // Combine partial sums from different threads
+    //Combine partial sums from different threads
     for (unsigned int n = 0; n < N; ++n) {
         std::complex<real> sum(0, 0);
         for (unsigned int t = 0; t < numThreads; t++) {
