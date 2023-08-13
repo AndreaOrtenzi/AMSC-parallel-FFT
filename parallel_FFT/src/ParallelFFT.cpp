@@ -40,10 +40,13 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
         odd[i] = x[2*i+1];
     }
 
-    // Try with different number of threads:
-    unsigned int numThreads = 4;
+        //******************************************************************
+    //          Try with different numbers of threads 
     // unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
-    // unsigned int numThreads = omp_get_max_threads();
+    unsigned int numThreads = 2;
+    // unsigned int numThreads = 4;
+    // unsigned int numThreads = n;
+    // ******************************************************************
 
     #pragma omp parallel sections num_threads(numThreads) 
     {
@@ -67,10 +70,14 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 // A parallel implementation of the FFT iterative method using OpenMP.
 void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
-    // Try with different numbers of threads:
+
+    //******************************************************************
+    //          Try with different numbers of threads 
     // unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
     unsigned int numThreads = 2;
+    // unsigned int numThreads = 4;
     // unsigned int numThreads = n;
+    // ******************************************************************
 
     // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
     #pragma omp task shared(x) firstprivate(n)
