@@ -36,9 +36,11 @@ using Real = REAL;
 #ifndef SEQ_IMPL
 #define SEQ_IMPL true
 #endif
-
-#ifndef PAR_IMPL
-#define PAR_IMPL true
+#ifndef PAR_OMP_IMPL
+#define PAR_OMP_IMPL true
+#endif
+#ifndef PAR_MPI_IMPL
+#define PAR_MPI_IMPL false
 #endif
 
 // #include "../inc/AbstractFFT.hpp"
@@ -46,8 +48,8 @@ using Real = REAL;
 #include "../inc/SequentialFFT.hpp"
 #endif
 
-#if PAR_IMPL
-#include "../inc/ParallelFFT.hpp"
+#if PAR_OMP_IMPL
+#include "../inc/Parallel_OMP_FFT.hpp"
 #endif
 
 // #include <ctime>
@@ -221,10 +223,10 @@ int main(int argc, char *argv[]) {
 
     const vector<complex<Real>> empty_vec(vectorLength);
     
-    //parallel implementation: 
-    #if PAR_IMPL
+    // OpenMP implementation: 
+    #if PAR_OMP_IMPL
     {
-        const string implementationName = "Parallel implementation";
+        const string implementationName = "OpenMP implementation";
         std::cout << "----------------"<< implementationName <<"----------------" << endl;
 
         unsigned int i = 0;
@@ -233,13 +235,13 @@ int main(int argc, char *argv[]) {
         for( i = 0; i < iterToTime; i++ ){
         #endif
         
-        ParallelFFT par_fft(xSpace, empty_vec);
+        Parallel_OMP_FFT fft(xSpace, empty_vec);
         
         #if TIME_IMPL
             begin = clock::now();
         #endif
 
-        par_fft.transform();
+        fft.transform();
         
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
@@ -249,7 +251,7 @@ int main(int argc, char *argv[]) {
         #endif
         
         #if CHECK_CORRECTNESS
-            checkCorrectness(implementationName, xFreq, par_fft.getFrequencyValues());
+            checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
         #endif
         
         #if TIME_IMPL
@@ -260,7 +262,7 @@ int main(int argc, char *argv[]) {
         #endif
         std::cout << "--------------------------------\n" << endl;
     }
-    #endif // PAR_IMPL
+    #endif // PAR_OMP_IMPL
 
     return 0;
 }

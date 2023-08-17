@@ -1,9 +1,9 @@
 #include "../inc/ParallelFFT.hpp"
 #include <iostream>
 
-bool ParallelFFT::isRecursive = false;
+bool Parallel_OMP_FFT::isRecursive = false;
 
-void ParallelFFT::transform(const std::vector<std::complex<real>>& sValues) {
+void Parallel_OMP_FFT::transform(const std::vector<std::complex<real>>& sValues) {
     // Perform the Fourier transform on the spatial values and store the result in the frequency values
     frequencyValues.resize(N);
     if (isRecursive){
@@ -21,7 +21,7 @@ void ParallelFFT::transform(const std::vector<std::complex<real>>& sValues) {
 }
 
 // A parallel implementation of the FFT recursive method using OpenMP.
-void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
+void Parallel_OMP_FFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
     if (n <= 1) {
         return;
     }
@@ -60,7 +60,7 @@ void ParallelFFT::recursiveFFT(std::complex<real> x[], const unsigned int n) {
 
 
 // A parallel implementation of the FFT iterative method using OpenMP.
-void ParallelFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
+void Parallel_OMP_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
 
     //******************************************************************

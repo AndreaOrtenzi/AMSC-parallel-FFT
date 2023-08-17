@@ -1,5 +1,5 @@
-#ifndef PARALLEL_FFT_HPP
-#define PARALLEL_FFT_HPP
+#ifndef PARALLEL_OMP_FFT_HPP
+#define PARALLEL_OMP_FFT_HPP
 
 #include <vector>
 #include <complex>
@@ -8,7 +8,7 @@
 
 #include "AbstractFFT.hpp"
 
-class ParallelFFT : public AbstractFFT {
+class Parallel_OMP_FFT : public AbstractFFT {
 public:
     using AbstractFFT::AbstractFFT; // use AbstractFFT constructors
     // use AbstractFFT overloaded methods, overloading hides the parent's methods
@@ -25,4 +25,4 @@ private:
     static bool isRecursive;
 };
 
-#endif // PARALLEL_FFT_HPP
+#endif // PARALLEL_OMP_FFT_HPP
