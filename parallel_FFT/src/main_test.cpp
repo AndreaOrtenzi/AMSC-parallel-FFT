@@ -19,7 +19,10 @@
 #define MAX_ARRAY_VALUES 250.0
 #endif
 
-#define Real double
+#ifndef REAL
+#define REAL double
+#endif
+using Real = REAL;
 
 #include <iostream>
 #include "GetPot"
@@ -145,7 +148,7 @@ int main(int argc, char *argv[]) {
             std::cout << endl;
         #if TIME_IMPL
             begin = clock::now();
-            DFT(xSpace.data(),xSpace.size());
+            DFT(xFreq.data(),xFreq.size());
         #else
             DFT(xFreq.data(),xFreq.size());
         #endif
@@ -155,24 +158,19 @@ int main(int argc, char *argv[]) {
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
             total += elapsed;
-
-            // print out the result to check if the recursive version is correct
-            std::cout << "Frequency values:" << endl;
-            for (std::vector<complex<Real>>::iterator it = xSpace.begin(); it != xSpace.end(); ++it)
-                std::cout << "\t" << *it;
-            std::cout << endl;
-        #else
-            // print out the result to check if the recursive version is correct
-            std::cout << "Frequency values:" << endl;
-            for (std::vector<complex<Real>>::iterator it = xFreq.begin(); it != xFreq.end(); ++it)
-                std::cout << "\t" << *it;
-            std::cout << endl;
         #endif
+        // print out the result to check if the recursive version is correct
+        std::cout << "Frequency values:" << endl;
+        for (std::vector<complex<Real>>::iterator it = xFreq.begin(); it != xFreq.end(); ++it)
+            std::cout << "\t" << *it;
+        std::cout << endl;
+        
         #if TIME_IMPL
             // create a new test vector every iteration
             fillArray(xSpace,i+1);
+            xFreq = xSpace;
         }    
-        std::cout << "Recursive took on average: " << total/iterToTime << unitTimeStr << endl;
+        std::cout << "DFT took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
     }    
     #endif
@@ -204,25 +202,25 @@ int main(int argc, char *argv[]) {
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
             std::cout << "It took " << elapsed << unitTimeStr <<" in the execution number "<< i << endl;
             total += elapsed;
-            DFT(xSpace.data(),xSpace.size());
-            #if CHECK_CORRECTNESS
-                checkCorrectness(implementationName, fft.getFrequencyValues(), xSpace);
-            #endif
-        #else
+            DFT(xFreq.data(),xFreq.size());
+        #endif
+        
         #if CHECK_CORRECTNESS
-            checkCorrectness(implementationName, fft.getFrequencyValues(), xFreq);
+            checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
         #endif
-        #endif
+        
         #if TIME_IMPL
             fillArray(xSpace,i+1);
+            xFreq = xSpace;
         }
         std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
         std::cout << "--------------------------------\n" << endl;
     }
-    #endif
+    #endif // SEQ_IMPL
 
     const vector<complex<Real>> empty_vec(vectorLength);
+    
     //parallel implementation: 
     #if PAR_IMPL
     {
@@ -247,23 +245,22 @@ int main(int argc, char *argv[]) {
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
             std::cout << "It took " << elapsed << unitTimeStr <<" in the execution number "<< i << endl;
             total += elapsed;
-            DFT(xSpace.data(),xSpace.size());
-            #if CHECK_CORRECTNESS
-                checkCorrectness(implementationName, par_fft.getFrequencyValues(), xSpace);
-            #endif
-        #else
+            DFT(xFreq.data(),xFreq.size());
+        #endif
+        
         #if CHECK_CORRECTNESS
-            checkCorrectness(implementationName, par_fft.getFrequencyValues(), xFreq);
+            checkCorrectness(implementationName, xFreq, par_fft.getFrequencyValues());
         #endif
-        #endif
+        
         #if TIME_IMPL
             fillArray(xSpace,i+1);
+            xFreq = xSpace;
         }
         std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
         std::cout << "--------------------------------\n" << endl;
     }
-    #endif
+    #endif // PAR_IMPL
 
     return 0;
 }
