@@ -3,25 +3,17 @@
 
 bool SequentialFFT::isRecursive = false;
 
-const std::vector<std::complex<real>>& SequentialFFT::getSpatialValues() const {
-    return spatialValues;
-}
-
-const std::vector<std::complex<real>>& SequentialFFT::getFrequencyValues() const {
-    return frequencyValues;
-}
-
-void SequentialFFT::transform() {
+void SequentialFFT::transform(const std::vector<std::complex<real>>& sValues) {
     // Perform the Fourier transform on the spatial values and store the result in the frequency values
     frequencyValues.resize(N);
     if (isRecursive){
         std::cout << "--start recursive imp--" << std::endl;
-        frequencyValues = spatialValues;
+        frequencyValues = sValues;
         recursiveFFT(frequencyValues.data(),frequencyValues.size());
     }
     else{
         std::cout << "--start iterative imp--" << std::endl;
-        frequencyValues = spatialValues;
+        frequencyValues = sValues;
         iterativeFFT(frequencyValues.data(),frequencyValues.size());
     }
     isRecursive = !isRecursive;
@@ -76,13 +68,13 @@ void SequentialFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
 }
 
 
-void SequentialFFT::iTransform() {
+void SequentialFFT::iTransform(const std::vector<std::complex<real>>& fValues) {
     // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(N);
     for (unsigned int n = 0; n < N; ++n) {
         std::complex<real> sum(0, 0);
         for (unsigned int k = 0; k < N; ++k) {
-            std::complex<real> term = frequencyValues[k] * std::exp(2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
+            std::complex<real> term = fValues[k] * std::exp(2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
             sum += term;
         }
         spatialValues[n] = sum / static_cast<real>(N);

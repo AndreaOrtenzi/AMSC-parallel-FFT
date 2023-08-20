@@ -1,14 +1,14 @@
-#ifndef SEQUENTIAL_FFT_HPP
-#define SEQUENTIAL_FFT_HPP
+#ifndef PARALLEL_OMP_FFT_HPP
+#define PARALLEL_OMP_FFT_HPP
 
 #include <vector>
 #include <complex>
 #include <cmath>
-#include <stdexcept>
+#include <omp.h>
 
 #include "AbstractFFT.hpp"
 
-class SequentialFFT : public AbstractFFT {
+class Parallel_OMP_FFT : public AbstractFFT {
 public:
     using AbstractFFT::AbstractFFT; // use AbstractFFT constructors
     // use AbstractFFT overloaded methods, overloading hides the parent's methods
@@ -21,8 +21,8 @@ public:
     void iterativeFFT(std::complex<real> x[], const unsigned int n);
     void recursiveFFT(std::complex<real> x[], const unsigned int n);
 
-protected:
+private:
     static bool isRecursive;
 };
 
-#endif // PARALLEL_FFT_HPP
+#endif // PARALLEL_OMP_FFT_HPP
