@@ -1,4 +1,4 @@
-#include "../inc/ParallelFFT.hpp"
+#include "../inc/Parallel_OMP_FFT.hpp"
 #include <iostream>
 
 bool Parallel_OMP_FFT::isRecursive = false;
