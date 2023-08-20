@@ -103,7 +103,7 @@ void Parallel_OMP_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n
 }
 
 
-void ParallelFFT::iTransform(const std::vector<std::complex<real>>& fValues) {
+void Parallel_OMP_FFT::iTransform(const std::vector<std::complex<real>>& fValues) {
     //Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(N);
 
