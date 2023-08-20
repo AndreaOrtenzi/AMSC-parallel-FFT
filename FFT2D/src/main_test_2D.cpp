@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
         for (int j = 0; j < xSpace.rows(); ++j) 
         {
             for (int k = 0; k < xSpace.cols(); ++k) {
-                std::complex<double> value = xSpace.coeff(j, k);
+                std::complex<double> value = xSpace(j, k);
                 std::cout << "\t(" << std::fixed << std::setprecision(3) << value.real() << ", " << value.imag() << ")";
             }       
         std::cout << std::endl;
@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
             for (int j = 0; j < xSpace.rows(); ++j) 
             {
                 for (int k = 0; k < xSpace.cols(); ++k) {
-                std::complex<double> value = xSpace.coeff(j, k);
+                std::complex<double> value = xSpace(j, k);
                 std::cout << "\t(" << std::fixed << std::setprecision(3) << value.real() << ", " << value.imag() << ")";
                 }       
             std::cout << std::endl;

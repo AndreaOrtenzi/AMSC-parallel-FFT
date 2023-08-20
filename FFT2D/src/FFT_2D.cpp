@@ -4,7 +4,7 @@
 #include <omp.h>
 #include <cstdlib>
 #include <cmath>
-// #include <chrono>
+#include <chrono>
 
 using namespace std; 
 
