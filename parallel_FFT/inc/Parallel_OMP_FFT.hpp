@@ -18,8 +18,9 @@ public:
     void transform(const std::vector<std::complex<real>>& sValues) override;
     void iTransform(const std::vector<std::complex<real>>& fValues) override;
 
-    void iterativeFFT(std::complex<real> x[], const unsigned int n);
-    void recursiveFFT(std::complex<real> x[], const unsigned int n);
+protected:
+    void iterativeFFT(std::complex<real> x[], const unsigned int n) override;
+    void recursiveFFT(std::complex<real> x[], const unsigned int n) override;
 
 private:
     static bool isRecursive;

@@ -6,14 +6,13 @@ bool Parallel_OMP_FFT::isRecursive = false;
 void Parallel_OMP_FFT::transform(const std::vector<std::complex<real>>& sValues) {
     // Perform the Fourier transform on the spatial values and store the result in the frequency values
     frequencyValues.resize(N);
+    frequencyValues = sValues;
     if (isRecursive){
         std::cout << "--start recursive imp--" << std::endl;
-        frequencyValues = sValues;
         recursiveFFT(frequencyValues.data(),frequencyValues.size());
     }
     else {
         std::cout<< "--start iterative imp--" << std::endl;
-        frequencyValues = sValues;
         iterativeFFT(frequencyValues.data(),frequencyValues.size());
     }
 

@@ -19,10 +19,9 @@
 #define MAX_ARRAY_VALUES 250.0
 #endif
 
-#ifndef REAL
-#define REAL double
+#ifndef Real
+#define Real double
 #endif
-using Real = REAL;
 
 #include <iostream>
 #include "GetPot"
@@ -40,7 +39,7 @@ using Real = REAL;
 #define PAR_OMP_IMPL true
 #endif
 #ifndef PAR_MPI_IMPL
-#define PAR_MPI_IMPL false
+#define PAR_MPI_IMPL true
 #endif
 
 // #include "../inc/AbstractFFT.hpp"
@@ -50,6 +49,11 @@ using Real = REAL;
 
 #if PAR_OMP_IMPL
 #include "../inc/Parallel_OMP_FFT.hpp"
+#endif
+
+#if PAR_MPI_IMPL
+#include <mpi.h>
+#include "../inc/Parallel_MPI_FFT.hpp"
 #endif
 
 // #include <ctime>
@@ -82,13 +86,15 @@ void DFT(complex<Real> x[], const unsigned int n){
 int checkCorrectness(const string implemName, const vector<complex<Real>> &correct, const vector<complex<Real>> &toCheck) {
     bool isCorrect = true;
     constexpr Real eps(1e-10*MAX_ARRAY_VALUES);
+    int pos = 0;
 
     auto j = toCheck.begin();
     for ( auto i = correct.begin(); i!=correct.end(); ++i) {
         if ( (i->imag()-j->imag()) > eps || (i->real()-j->real()) > eps) {
-            std::cout << "Problem with element: " << *i << ", It should be: " << *j << endl;
+            std::cout << "Problem with element at index " << pos << ": " << *j << ", It should be: " << *i << endl;
             isCorrect = false;
         }
+        pos++;
         if (j!=toCheck.end())
             j++;
     }
@@ -135,37 +141,33 @@ int main(int argc, char *argv[]) {
     vector<complex<Real>> xSpace(vectorLength);
     fillArray(xSpace);
     vector<complex<Real>> xFreq(xSpace);
+    const vector<complex<Real>> empty_vec(vectorLength);
     
+    #if PAR_MPI_IMPL
+        int world_size = 1, world_rank = 0;
+
+        MPI_Init(NULL, NULL);      // initialize MPI environment
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        if (world_rank == 0) {
+    #endif  // PAR_MPI_IMPL
+        
+    
+
     #if CHECK_CORRECTNESS    
     // run the recursive version
     {
         unsigned int i = 0;
         #if TIME_IMPL
         for(i = 0; i < iterToTime; i++ ){            
-        #endif
-            // print out the result to check if the recursive version is correct
-            std::cout << "Space values:" << endl;
-            for (std::vector<complex<Real>>::iterator it = xSpace.begin(); it != xSpace.end(); ++it)
-                std::cout << "\t" << *it;
-            std::cout << endl;
-        #if TIME_IMPL
             begin = clock::now();
-            DFT(xFreq.data(),xFreq.size());
-        #else
-            DFT(xFreq.data(),xFreq.size());
         #endif
-
-        
+        DFT(xFreq.data(),xFreq.size());
 
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
             total += elapsed;
         #endif
-        // print out the result to check if the recursive version is correct
-        std::cout << "Frequency values:" << endl;
-        for (std::vector<complex<Real>>::iterator it = xFreq.begin(); it != xFreq.end(); ++it)
-            std::cout << "\t" << *it;
-        std::cout << endl;
         
         #if TIME_IMPL
             // create a new test vector every iteration
@@ -178,7 +180,6 @@ int main(int argc, char *argv[]) {
     #endif
 
     // run my implementations:
-    const vector<complex<Real>> empty_vector(vectorLength);
 
     // sequential implementation:  
     #if SEQ_IMPL
@@ -192,7 +193,7 @@ int main(int argc, char *argv[]) {
         for( i = 0; i < iterToTime; i++ ){
         #endif
         
-        SequentialFFT fft(xSpace, empty_vector);
+        SequentialFFT fft(xSpace, empty_vec);
         
         #if TIME_IMPL
             begin = clock::now();
@@ -221,7 +222,7 @@ int main(int argc, char *argv[]) {
     }
     #endif // SEQ_IMPL
 
-    const vector<complex<Real>> empty_vec(vectorLength);
+    
     
     // OpenMP implementation: 
     #if PAR_OMP_IMPL
@@ -263,6 +264,60 @@ int main(int argc, char *argv[]) {
         std::cout << "--------------------------------\n" << endl;
     }
     #endif // PAR_OMP_IMPL
+
+    // MPI implementation: 
+    #if PAR_MPI_IMPL
+    } // if (world_rank == 0) {
+    {
+        const string implementationName = "MPI implementation";
+        if (world_rank == 0)
+            std::cout << "----------------"<< implementationName <<"----------------" << endl;
+
+        unsigned int i = 0;
+
+        #if TIME_IMPL
+        total = 0.0;
+        for( i = 0; i < iterToTime; i++ ){
+        #endif
+        
+        Parallel_MPI_FFT fft(xSpace, empty_vec, world_size, world_rank);
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        #if TIME_IMPL
+            begin = clock::now();
+        #endif
+
+        fft.transform();
+        
+        #if TIME_IMPL
+            double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
+            if (world_rank==0)
+                std::cout << "It took " << elapsed << unitTimeStr <<" in the execution number "<< i << endl;
+            total += elapsed;
+        #endif
+        
+        #if CHECK_CORRECTNESS
+            if (world_rank==0){
+                DFT(xFreq.data(),xFreq.size());
+                checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
+            }
+        #endif
+        
+        #if TIME_IMPL
+            if (world_rank==0)
+                fillArray(xSpace,i+1);
+            xFreq = xSpace;
+        }
+        if (world_rank==0)
+            std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
+        #endif
+
+        MPI_Finalize(); // finish MPI environment
+
+        if (world_rank==0)
+            std::cout << "--------------------------------\n" << endl;
+    }
+    #endif // PAR_MPI_IMPL
 
     return 0;
 }

@@ -1,11 +1,14 @@
 #ifndef ABSTRACT_FFT_HPP
 #define ABSTRACT_FFT_HPP
 
-#ifndef REAL
-#define REAL double
+#ifndef Real
+#define Real double
 #endif
-using real = REAL;
+using real = Real;
 
+#ifndef IS_RECURSIVE
+#define IS_RECURSIVE false
+#endif
 
 #include <vector>
 #include <complex>
@@ -34,11 +37,13 @@ public:
 
     virtual void transform(const std::vector<std::complex<real>>& sValues) = 0;
     virtual void iTransform(const std::vector<std::complex<real>>& fValues) = 0;
-
-
+    
     virtual ~AbstractFFT() {};
 
 protected:
+
+    virtual void iterativeFFT(std::complex<real> x[], const unsigned int n) = 0;
+    virtual void recursiveFFT(std::complex<real> x[], const unsigned int n) = 0;
     
     void checkInputValues(const std::vector<std::complex<real>>& values) const {
         if (values.size() != N)

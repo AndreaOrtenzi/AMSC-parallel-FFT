@@ -1,4 +1,4 @@
-CXX = g++
+CXX = mpic++
 CXXFLAGS = -std=c++2a -Wall -fopenmp
 
 SRCS_LIB := $(filter-out src/main_test.cpp, $(wildcard src/*.cpp))
