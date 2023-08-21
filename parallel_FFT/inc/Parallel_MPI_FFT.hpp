@@ -16,16 +16,16 @@ public:
 
     Parallel_MPI_FFT(const unsigned int problemSize, int ws, int wr) :
          AbstractFFT(problemSize)
-        , world_rank(wr)
-        , world_size(worldSizeIni(ws, N, wr)){
+        , world_size(worldSizeIni(ws, N, wr))
+        , world_rank(wr) {
             int color = wr < world_size ? 0 : MPI_UNDEFINED;
             MPI_Comm_split(MPI_COMM_WORLD, color, wr, &world_size_comm);
         }
 
     Parallel_MPI_FFT(const std::vector<std::complex<real>>& sValues,const std::vector<std::complex<real>>& fValues, int ws, int wr) :
-         AbstractFFT(sValues, fValues) 
-        , world_rank(wr)
-        , world_size(worldSizeIni(ws, N, wr)) {
+         AbstractFFT(sValues, fValues)
+        , world_size(worldSizeIni(ws, N, wr)) 
+        , world_rank(wr){
             int color = wr < world_size ? 0 : MPI_UNDEFINED;
             MPI_Comm_split(MPI_COMM_WORLD, color, wr, &world_size_comm);
         }
@@ -53,12 +53,10 @@ private:
         return 1 << pwr;
     }
 
-
-
-    static bool isRecursive;
     const int world_size; // number of processes
     const int world_rank; // the rank of the process
     static unsigned int n_splitting;
+    static bool isRecursive;
     MPI_Comm world_size_comm;
 };
 

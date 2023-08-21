@@ -30,7 +30,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <vector>
-#include <omp.h> 
 
 #ifndef SEQ_IMPL
 #define SEQ_IMPL true
@@ -48,6 +47,7 @@
 #endif
 
 #if PAR_OMP_IMPL
+#include <omp.h> 
 #include "../inc/Parallel_OMP_FFT.hpp"
 #endif
 

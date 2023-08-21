@@ -25,8 +25,11 @@ void Parallel_MPI_FFT::transform(const std::vector<std::complex<real>>& sValues)
     }
 
     // receive array from rank 0
-    MPI_Scatter(&splitted_array[0][0], n_splitting, MPI_DOUBLE_COMPLEX, &splitted_array[world_rank][0],
-        n_splitting, MPI_DOUBLE_COMPLEX, 0, world_size_comm);
+    if (typeid(real) == typeid(double))
+        MPI_Scatter(&splitted_array[0][0], n_splitting, MPI_DOUBLE_COMPLEX, &splitted_array[world_rank][0],
+            n_splitting, MPI_DOUBLE_COMPLEX, 0, world_size_comm);
+    else MPI_Scatter(&splitted_array[0][0], n_splitting, MPI_COMPLEX, &splitted_array[world_rank][0],
+            n_splitting, MPI_COMPLEX, 0, world_size_comm);
 
     // compute FFT on this section
     if (isRecursive){
@@ -49,8 +52,11 @@ void Parallel_MPI_FFT::transform(const std::vector<std::complex<real>>& sValues)
     
 
     // send processed array to rank 0
-    MPI_Gather(&splitted_array[world_rank][0], n_splitting, MPI_DOUBLE_COMPLEX, &splitted_array[0][0], n_splitting, MPI_DOUBLE_COMPLEX, 0,
-        world_size_comm);
+    if (typeid(real) == typeid(double))
+        MPI_Gather(&splitted_array[world_rank][0], n_splitting, MPI_DOUBLE_COMPLEX, &splitted_array[0][0], n_splitting, MPI_DOUBLE_COMPLEX, 0,
+            world_size_comm);
+    else MPI_Gather(&splitted_array[world_rank][0], n_splitting, MPI_COMPLEX, &splitted_array[0][0], n_splitting, MPI_COMPLEX, 0,
+            world_size_comm);
 
 
     if (world_rank == 0) {
