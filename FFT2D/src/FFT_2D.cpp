@@ -11,11 +11,11 @@ using namespace std;
 bool FFT_2D::isRecursive = false;
 bool FFT_2D::isParallel = false;
 
-const SpMat& FFT_2D::getSpatialValues() const {
+const Mat& FFT_2D::getSpatialValues() const {
     return spatialValues;
 }
 
-const SpMat& FFT_2D::getFrequencyValues() const {
+const Mat& FFT_2D::getFrequencyValues() const {
     return frequencyValues;
 }
 
@@ -86,7 +86,7 @@ void FFT_2D::transform(){
 }
 
 
-void FFT_2D::iterative_sequential(SpMat& input_matrix, const unsigned int n){
+void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
     unsigned int numBits = static_cast<unsigned int>(log2(n));
 //First pass: Apply FFT to each row
 for (unsigned int i = 0; i < n; ++i) {
@@ -147,7 +147,7 @@ for (unsigned int i = 0; i < n; ++i) {
     std::cout << "Iterative sequential FFT complete." << std::endl;
 }
 
-void FFT_2D::iterative_parallel(SpMat& input_matrix, const unsigned int n){
+void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
    
    unsigned int numBits = static_cast<unsigned int>(log2(n));
        
@@ -236,7 +236,7 @@ for(unsigned int i=0; i<n; i++){
 }
 
 
-void FFT_2D::recursive_sequential(SpMat& input_matrix, const unsigned int n) {
+void FFT_2D::recursive_sequential(Mat& input_matrix, const unsigned int n) {
     
     if (n <= 1) {
         return;
@@ -259,7 +259,7 @@ void FFT_2D::recursive_sequential(SpMat& input_matrix, const unsigned int n) {
     std::cout << "Recursive sequential FFT complete." << std::endl;
 }
 
-void FFT_2D::recursive_parallel(SpMat& input_matrix, const unsigned int n){
+void FFT_2D::recursive_parallel(Mat& input_matrix, const unsigned int n){
     
     //******************************************************************
     //          Try with different numbers of threads 

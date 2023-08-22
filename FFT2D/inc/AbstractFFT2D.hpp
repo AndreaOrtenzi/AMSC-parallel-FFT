@@ -18,25 +18,25 @@ using namespace std;
 using namespace Eigen;
 //using MyComplex = std::complex<double>;
 using SpVec = Eigen::VectorXcd;
-using SpMat = Eigen::MatrixXcd;
+using Mat = Eigen::MatrixXcd;
 
 class AbstractFFT2D {
 protected:
 
-    AbstractFFT2D(const SpMat& sValues,const SpMat& fValues) : 
+    AbstractFFT2D(const Mat& sValues,const Mat& fValues) : 
         spatialValues(sValues)
         , frequencyValues(fValues)
         , n(std::max( std::max(sValues.rows(), sValues.cols()) , std::max(fValues.rows(),fValues.cols()) ) ) {}
 
-    virtual const SpMat& getSpatialValues() const = 0;
-    virtual const SpMat& getFrequencyValues() const = 0;
+    virtual const Mat& getSpatialValues() const = 0;
+    virtual const Mat& getFrequencyValues() const = 0;
     virtual void transform() = 0;
     virtual void iTransform() = 0;
     virtual ~AbstractFFT2D() {};
 
 // protected:
-    SpMat spatialValues;
-    SpMat frequencyValues;
+    Mat spatialValues;
+    Mat frequencyValues;
     const unsigned int n; // matrices' size
 };
 

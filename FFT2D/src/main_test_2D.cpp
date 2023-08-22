@@ -47,8 +47,8 @@
 using namespace std;
 using SparseMat = Eigen::SparseMatrix<std::complex<double>>;
 
-void DFT_2D(SpMat& spatialValues, const unsigned int n) {
-    SpMat frequencyValues(n, n);
+void DFT_2D(Mat& spatialValues, const unsigned int n) {
+    Mat frequencyValues(n, n);
 
     for (unsigned int k = 0; k < n; k++) {
         for (unsigned int l = 0; l < n; l++) {
@@ -75,7 +75,7 @@ void DFT_2D(SpMat& spatialValues, const unsigned int n) {
 
 
 #if CHECK_CORRECTNESS
-int checkCorrectness(const string implemName, const SpMat &correct, const SpMat &toCheck) {
+int checkCorrectness(const string implemName, const Mat &correct, const Mat &toCheck) {
     bool isCorrect = true;
     constexpr double eps(1e-10 * MAX_MAT_VALUES);
 
@@ -103,7 +103,7 @@ int checkCorrectness(const string implemName, const SpMat &correct, const SpMat 
 }
 #endif
 
-void fill_input_matrix(SpMat& matToFill, unsigned int pow, unsigned int seed = 10)
+void fill_input_matrix(Mat& matToFill, unsigned int pow, unsigned int seed = 10)
 {
     srand(time(nullptr)*seed*0.1);
     unsigned int size = std::pow(2, pow); // Calculate the size of the matrix
@@ -120,7 +120,7 @@ void fill_input_matrix(SpMat& matToFill, unsigned int pow, unsigned int seed = 1
     }
 }
 
-void load_input(SpMat& input_matrix, std::string& filename) 
+void load_input(Mat& input_matrix, std::string& filename) 
 {
     SparseMat sparse_mat_input;
     
@@ -168,9 +168,10 @@ int main(int argc, char *argv[]) {
     #endif
 
     // create the matrix xSpace to convert with FFT:
-    SpMat xSpace(rowlength, rowlength); 
-    fill_input_matrix(xSpace, 2);
-    SpMat xFreq;
+    Mat xSpace(rowlength, rowlength); 
+    const unsigned int pow = std::log2(ROW_LENGTH);
+    fill_input_matrix(xSpace, pow);
+    Mat xFreq;
 
     #if CHECK_CORRECTNESS    
     // run the recursive version
@@ -219,7 +220,7 @@ int main(int argc, char *argv[]) {
         #endif
         #if TIME_IMPL
             // create a new test vector every iteration
-            fill_input_matrix(xSpace, 2, i+1);
+            fill_input_matrix(xSpace, pow, i+1);
         }    
         std::cout << "Recursive took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
@@ -227,7 +228,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     // run my implementations:
-    SpMat empty_matrix(rowlength, rowlength);
+    Mat empty_matrix(rowlength, rowlength);
 
     // sequential implementation:  
     #if SEQ_IMPL
@@ -271,7 +272,7 @@ int main(int argc, char *argv[]) {
     }
     #endif
 
-    SpMat empty_mat(rowlength, rowlength);
+    Mat empty_mat(rowlength, rowlength);
     //parallel implementation: 
     #if PAR_IMPL
     {
