@@ -24,7 +24,8 @@ protected:
 
     virtual const Mat& getSpatialValues() const = 0;
     virtual const Mat& getFrequencyValues() const = 0;
-    virtual void transform() = 0;
+    virtual void transform_par() = 0;
+    virtual void transform_seq() = 0;
     virtual void iTransform() = 0;
     virtual ~AbstractFFT2D() {};
 

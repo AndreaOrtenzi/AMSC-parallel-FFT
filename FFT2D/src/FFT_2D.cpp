@@ -9,8 +9,6 @@
 using namespace std; 
 using namespace std::chrono;
 
-bool FFT_2D::isParallel = false;
-
 const Mat& FFT_2D::getSpatialValues() const {
     return spatialValues;
 }
@@ -59,30 +57,28 @@ void FFT_2D::inv_transform_1D(SpVec& x) {
     }
 }
 
-
-
-void FFT_2D::transform(){
+void FFT_2D::transform_par(){
     // Resize frequency matrix: 
     frequencyValues.resize(n, n);
-    if(isParallel)
-    {
-        std::cout << "***Start Parallel Iterative Implementation***" << std::endl;
-        frequencyValues = spatialValues;
-        iterative_parallel(frequencyValues,frequencyValues.rows());
-    }
-    else{
-        std::cout << "***Start Sequential Iterative Implementation***" << std::endl;
-        frequencyValues = spatialValues;
-        iterative_sequential(frequencyValues,frequencyValues.rows());
-        }
 
-    isParallel = !isParallel;
+    std::cout << "***Start Parallel Iterative Implementation***" << std::endl;
+    frequencyValues = spatialValues;
+    iterative_parallel(frequencyValues,frequencyValues.rows());
 }
+
+void FFT_2D::transform_seq(){
+    // Resize frequency matrix: 
+    frequencyValues.resize(n, n);
+
+    std::cout << "***Start Sequential Iterative Implementation***" << std::endl;
+    frequencyValues = spatialValues;
+    iterative_sequential(frequencyValues,frequencyValues.rows());
+}
+
 
 
 void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
     
-    const auto t_i = high_resolution_clock::now();
     unsigned int numBits = static_cast<unsigned int>(log2(n));
     //First pass: Apply FFT to each row
     for (unsigned int i = 0; i < n; ++i) {
@@ -138,15 +134,12 @@ void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
         }
         
         input_matrix.col(i) = col_vector;
-}
-        const auto t_f = high_resolution_clock::now();
-        const auto time_iter_seq = duration_cast<microseconds>(t_f - t_i).count();
-        std::cout << "Sequential Iterative FFT2D complete in "<< time_iter_seq << " ms" << std::endl;
+    }
+
 }
 
 void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
    
-   const auto t_i = high_resolution_clock::now();
    unsigned int numBits = static_cast<unsigned int>(log2(n));
        
     //******************************************************************
@@ -229,16 +222,14 @@ for(unsigned int i=0; i<n; i++){
 
         input_matrix.col(i) = col_vector;
     }
-    const auto t_f = high_resolution_clock::now();
-    const auto time_iter_par = duration_cast<microseconds>(t_f - t_i).count();
-    std::cout << "Parallel Iterative FFT2D complete in " << time_iter_par << " ms" << std::endl;
+    
 }
 
 void FFT_2D::iTransform() {
     const auto t_i = high_resolution_clock::now();
     // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(n, n);
-    std::cout << "Inverse transform starts." << std::endl;
+    std::cout << "***Inverse Transform starts ***" << std::endl;
     
     //First pass: apply inverse FFT1D on each row:
     for (unsigned int i = 0; i < n; ++i){
@@ -256,7 +247,7 @@ void FFT_2D::iTransform() {
 
     const auto t_f = high_resolution_clock::now();
     const auto time_inverse = duration_cast<microseconds>(t_f - t_i).count();
-    std::cout << "Inverse Transform complete in " << time_inverse << " ms" << std::endl;
+    std::cout << "*** Inverse Transform complete in " << time_inverse << " ms ***" << std::endl;
     std::cout << "---------------------------------------------------------------\n" << endl;
 }
 

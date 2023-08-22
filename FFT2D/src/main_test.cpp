@@ -74,7 +74,7 @@ void DFT_2D(Mat& spatialValues, const unsigned int n) {
 }
 
 #if CHECK_CORRECTNESS
-int checkCorrectness(const Mat &correct, const Mat &toCheck) {
+int checkCorrectness(const string implemName, const Mat &correct, const Mat &toCheck) {
     bool isCorrect = true;
     constexpr double eps(1e-10 * MAX_MAT_VALUES);
 
@@ -93,11 +93,11 @@ int checkCorrectness(const Mat &correct, const Mat &toCheck) {
     }
 
     if (!isCorrect) {
-        std::cout << "WRONG TRANSFORMATION!" << endl;
+        std::cout << "WRONG TRANSFORMATION in " << implemName << "!" << endl;
         return 1;
     }
 
-    std::cout << "Correct transformation!" << endl;
+    std::cout << "Correct transformation in " << implemName << "!" << endl;
     return 0;
 }
 #endif
@@ -230,32 +230,91 @@ int main(int argc, char *argv[]) {
     // run my implementations:
     Mat empty_matrix(rowlength, rowlength);
 
-    unsigned int i = 0;
+    // sequential implementation:  
+    #if SEQ_IMPL
+    {
+        const string implementationName = "Sequential FFT 2D implementation";
+        std::cout << "----------------"<< implementationName <<"----------------" << endl;
+
+        unsigned int i = 0;
         #if TIME_IMPL
         total = 0.0;
         for( i = 0; i < iterToTime; i++ ){
         #endif
-
-    FFT_2D fft2D(xSpace, empty_matrix);
-    fft2D.transform();
-    #if TIME_IMPL
-    DFT_2D(xSpace,xSpace.rows());
-            #if CHECK_CORRECTNESS
-                checkCorrectness(fft2D.getFrequencyValues(), xSpace);
-            #endif
-    #else
-    #if CHECK_CORRECTNESS
-            checkCorrectness(implementationName, fft2D.getFrequencyValues(), xFreq);
-    #endif
+        
+        FFT_2D fft2D(xSpace, empty_matrix);
+        
+        #if TIME_IMPL
+            begin = clock::now();
         #endif
-    #if TIME_IMPL
-        fill_input_matrix(xSpace, 2, i+1);
-        xFreq= xSpace;
+
+        fft2D.transform_seq();
+        
+        #if TIME_IMPL
+            double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
+            std::cout << "It took " << elapsed << unitTimeStr <<" in the execution number "<< i << endl;
+            total += elapsed;
+            DFT_2D(xSpace,xSpace.rows());
+            #if CHECK_CORRECTNESS
+                checkCorrectness(implementationName, fft2D.getFrequencyValues(), xSpace);
+            #endif
+        #else
+        #if CHECK_CORRECTNESS
+            checkCorrectness(implementationName, fft2D.getFrequencyValues(), xFreq);
+        #endif
+        #endif
+        #if TIME_IMPL
+            fill_input_matrix(xSpace, 2, i+1);
+        }
+        std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
+        #endif
+        std::cout << "----------------------------------------------------------------------------\n" << endl;
     }
-    std::cout << "---------------------------------------------------------------\n" << endl;
     #endif
 
+    Mat empty_mat(rowlength, rowlength);
+    //parallel implementation: 
+    #if PAR_IMPL
+    {
+        const string implementationName = "Parallel FFT 2D implementation";
+        std::cout << "----------------"<< implementationName <<"----------------" << endl;
 
+        unsigned int i = 0;
+        #if TIME_IMPL
+        total = 0.0;
+        for( i = 0; i < iterToTime; i++ ){
+        #endif
+        
+        FFT_2D fft2D(xSpace, empty_mat);
+        
+        #if TIME_IMPL
+            begin = clock::now();
+        #endif
+
+        fft2D.transform_par();
+        
+        #if TIME_IMPL
+            double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
+            std::cout << "It took " << elapsed << unitTimeStr <<" in the execution number "<< i << endl;
+            total += elapsed;
+            DFT_2D(xSpace,xSpace.rows());
+            #if CHECK_CORRECTNESS
+                checkCorrectness(implementationName, fft2D.getFrequencyValues(), xSpace);
+            #endif
+        #else
+        #if CHECK_CORRECTNESS
+            checkCorrectness(implementationName, fft2D.getFrequencyValues(), xFreq);
+        #endif
+        #endif
+        #if TIME_IMPL
+            fill_input_matrix(xSpace, 2, i+1);
+        }
+        std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
+        #endif
+        std::cout << "----------------------------------------------------------------------------\n" << endl;
+    }
+    #endif
 
     return 0;
 }
+

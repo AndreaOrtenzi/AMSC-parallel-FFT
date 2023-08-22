@@ -15,7 +15,9 @@ public:
 
     const Mat& getFrequencyValues() const override;
   
-    void transform() override;
+    void transform_par() override;
+
+    void transform_seq() override;
 
     void iTransform() override;
 
@@ -24,6 +26,5 @@ private:
     void iterative_sequential(Mat& input_matrix, const unsigned int n); 
     void iterative_parallel(Mat& input_matrix, const unsigned int n);
     void inv_transform_1D(SpVec& x);
-    static bool isParallel;  
 
 };
