@@ -7,6 +7,7 @@
 #include <chrono>
 
 using namespace std; 
+using namespace std::chrono;
 
 bool FFT_2D::isRecursive = false;
 bool FFT_2D::isParallel = false;
@@ -56,12 +57,12 @@ void FFT_2D::transform(){
     {
         if(isRecursive)
         {
-            std::cout << "--start parallel recursive imp--" << std::endl;
+            std::cout << "***Start Parallel Recursive Implementation***" << std::endl;
             frequencyValues = spatialValues;
             recursive_parallel(frequencyValues,frequencyValues.rows());
         }
         else{
-            std::cout << "--start parallel iterative imp--" << std::endl;
+            std::cout << "***Start Parallel Iterative Implementation***" << std::endl;
             frequencyValues = spatialValues;
             iterative_parallel(frequencyValues,frequencyValues.rows());
         }
@@ -71,12 +72,12 @@ void FFT_2D::transform(){
     else{
         if(isRecursive)
         {
-            std::cout << "--start sequential recursive imp--" << std::endl;
+            std::cout << "***Start Sequential Recursive Implementation***" << std::endl;
             frequencyValues = spatialValues;
             recursive_sequential(frequencyValues,frequencyValues.rows());
         }
         else{
-            std::cout << "--start sequential iterative imp--" << std::endl;
+            std::cout << "***Start Sequential Iterative Implementation***" << std::endl;
             frequencyValues = spatialValues;
             iterative_sequential(frequencyValues,frequencyValues.rows());
         }
@@ -87,6 +88,8 @@ void FFT_2D::transform(){
 
 
 void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
+    
+    const auto t_i = high_resolution_clock::now();
     unsigned int numBits = static_cast<unsigned int>(log2(n));
 //First pass: Apply FFT to each row
 for (unsigned int i = 0; i < n; ++i) {
@@ -143,12 +146,15 @@ for (unsigned int i = 0; i < n; ++i) {
     
     input_matrix.col(i) = col_vector;
 }
-
-    std::cout << "Iterative sequential FFT complete." << std::endl;
+    const auto t_f = high_resolution_clock::now();
+    time_iter_seq = duration_cast<microseconds>(t_f - t_i).count();
+    std::cout << "Sequential Iterative FFT2D complete in "<< time_iter_seq << " ms" << std::endl;
+    std::cout << "---------------------------------------------------------------\n" << endl;
 }
 
 void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
    
+   const auto t_i = high_resolution_clock::now();
    unsigned int numBits = static_cast<unsigned int>(log2(n));
        
     //******************************************************************
@@ -231,13 +237,16 @@ for(unsigned int i=0; i<n; i++){
 
         input_matrix.col(i) = col_vector;
     }
-
-    std::cout << "Iterative parallel FFT complete." << std::endl;
+    const auto t_f = high_resolution_clock::now();
+    time_iter_par = duration_cast<microseconds>(t_f - t_i).count();
+    std::cout << "Parallel Iterative FFT2D complete in " << time_iter_par << " ms" << std::endl;
+    std::cout << "---------------------------------------------------------------\n" << endl;
 }
 
 
 void FFT_2D::recursive_sequential(Mat& input_matrix, const unsigned int n) {
     
+    const auto t_i = high_resolution_clock::now();
     if (n <= 1) {
         return;
     }
@@ -255,12 +264,15 @@ void FFT_2D::recursive_sequential(Mat& input_matrix, const unsigned int n) {
         recursive_seq_1D(col_vector, n);
         input_matrix.col(i) = col_vector;
     }
-  
-    std::cout << "Recursive sequential FFT complete." << std::endl;
+    const auto t_f = high_resolution_clock::now();
+    time_recursive_seq = duration_cast<microseconds>(t_f - t_i).count();
+    std::cout << "Sequential Recursive FFT2D complete in " << time_recursive_seq << " ms" << std::endl;
+    std::cout << "---------------------------------------------------------------\n" << endl;
 }
 
 void FFT_2D::recursive_parallel(Mat& input_matrix, const unsigned int n){
     
+    const auto t_i = high_resolution_clock::now();
     //******************************************************************
     //          Try with different numbers of threads 
     //unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
@@ -327,12 +339,15 @@ void FFT_2D::recursive_parallel(Mat& input_matrix, const unsigned int n){
         input_matrix.col(l) = col_vector;
     }
 
-        
-    std::cout << "Recursive parallel FFT complete." << std::endl;
+    const auto t_f = high_resolution_clock::now();
+    time_recursive_par = duration_cast<microseconds>(t_f - t_i).count();
+    std::cout << "Parallel Recursive FFT2D complete in " << time_recursive_par << " ms" << std::endl;
+    std::cout << "---------------------------------------------------------------\n" << endl;
 }
 
 
 void FFT_2D::iTransform() {
+    const auto t_i = high_resolution_clock::now();
     // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(n, n);
     std::cout << "Inverse transform starts." << std::endl;
@@ -351,7 +366,10 @@ void FFT_2D::iTransform() {
         spatialValues.col(i) = col_vector;
     }
 
-    std::cout << "Inverse transform complete." << std::endl;
+    const auto t_f = high_resolution_clock::now();
+    time_inverse = duration_cast<microseconds>(t_f - t_i).count();
+    std::cout << "Inverse Transform complete in " << time_inverse << " ms" << std::endl;
+    std::cout << "---------------------------------------------------------------\n" << endl;
 }
 
 

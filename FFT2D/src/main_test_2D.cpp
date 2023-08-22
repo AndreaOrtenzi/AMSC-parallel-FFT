@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
     Mat xSpace(rowlength, rowlength); 
     const unsigned int pow = std::log2(ROW_LENGTH);
     fill_input_matrix(xSpace, pow);
-    Mat xFreq;
+    Mat xFreq(xSpace);
 
     #if CHECK_CORRECTNESS    
     // run the recursive version
@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
             std::cout << endl;
         #endif
         #if TIME_IMPL
-            // create a new test vector every iteration
+            // create a new test matrix every iteration
             fill_input_matrix(xSpace, pow, i+1);
         }    
         std::cout << "Recursive took on average: " << total/iterToTime << unitTimeStr << endl;
