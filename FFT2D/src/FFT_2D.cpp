@@ -147,7 +147,7 @@ for (unsigned int i = 0; i < n; ++i) {
     input_matrix.col(i) = col_vector;
 }
     const auto t_f = high_resolution_clock::now();
-    time_iter_seq = duration_cast<microseconds>(t_f - t_i).count();
+    const auto time_iter_seq = duration_cast<microseconds>(t_f - t_i).count();
     std::cout << "Sequential Iterative FFT2D complete in "<< time_iter_seq << " ms" << std::endl;
     std::cout << "---------------------------------------------------------------\n" << endl;
 }
@@ -238,7 +238,7 @@ for(unsigned int i=0; i<n; i++){
         input_matrix.col(i) = col_vector;
     }
     const auto t_f = high_resolution_clock::now();
-    time_iter_par = duration_cast<microseconds>(t_f - t_i).count();
+    const auto time_iter_par = duration_cast<microseconds>(t_f - t_i).count();
     std::cout << "Parallel Iterative FFT2D complete in " << time_iter_par << " ms" << std::endl;
     std::cout << "---------------------------------------------------------------\n" << endl;
 }
@@ -265,7 +265,7 @@ void FFT_2D::recursive_sequential(Mat& input_matrix, const unsigned int n) {
         input_matrix.col(i) = col_vector;
     }
     const auto t_f = high_resolution_clock::now();
-    time_recursive_seq = duration_cast<microseconds>(t_f - t_i).count();
+    const auto time_recursive_seq = duration_cast<microseconds>(t_f - t_i).count();
     std::cout << "Sequential Recursive FFT2D complete in " << time_recursive_seq << " ms" << std::endl;
     std::cout << "---------------------------------------------------------------\n" << endl;
 }
@@ -340,7 +340,7 @@ void FFT_2D::recursive_parallel(Mat& input_matrix, const unsigned int n){
     }
 
     const auto t_f = high_resolution_clock::now();
-    time_recursive_par = duration_cast<microseconds>(t_f - t_i).count();
+    const auto time_recursive_par = duration_cast<microseconds>(t_f - t_i).count();
     std::cout << "Parallel Recursive FFT2D complete in " << time_recursive_par << " ms" << std::endl;
     std::cout << "---------------------------------------------------------------\n" << endl;
 }
@@ -367,7 +367,7 @@ void FFT_2D::iTransform() {
     }
 
     const auto t_f = high_resolution_clock::now();
-    time_inverse = duration_cast<microseconds>(t_f - t_i).count();
+    const auto time_inverse = duration_cast<microseconds>(t_f - t_i).count();
     std::cout << "Inverse Transform complete in " << time_inverse << " ms" << std::endl;
     std::cout << "---------------------------------------------------------------\n" << endl;
 }
