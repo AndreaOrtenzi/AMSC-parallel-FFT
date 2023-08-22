@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++2a -Wall -fopenmp -I${mkEigenInc}
 
-SRCS_LIB := $(filter-out src/main_test_2D.cpp, $(wildcard src/*.cpp))
+SRCS_LIB := $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 OBJS_LIB := $(patsubst src/%.cpp,obj/%.o,$(SRCS_LIB))
 
 all: test2D.exe
@@ -9,7 +9,7 @@ all: test2D.exe
 libourparallelFFT.a: $(OBJS_LIB)
 	ar rs libourparallelFFT.a $^
 
-test2D.exe: $(OBJS_LIB) obj/main_test_2D.o
+test2D.exe: $(OBJS_LIB) obj/main.o
 	$(CXX) $(LDFLAGS) -fopenmp $^ -o test2D.exe
 
 obj/%.o : src/%.cpp | obj

@@ -1,11 +1,6 @@
 #ifndef ABSTRACT_FFT2D_HPP
 #define ABSTRACT_FFT2D_HPP
 
-// #ifndef Real
-// #define Real double
-// #endif
-// using real = Real;
-
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/Core>
@@ -16,7 +11,6 @@
 // Useful:
 using namespace std;
 using namespace Eigen;
-//using MyComplex = std::complex<double>;
 using SpVec = Eigen::VectorXcd;
 using Mat = Eigen::MatrixXcd;
 

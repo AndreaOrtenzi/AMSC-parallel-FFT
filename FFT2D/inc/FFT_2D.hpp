@@ -21,13 +21,9 @@ public:
 
 private:
 
-    void iterative_sequential(Mat& input_matrix, const unsigned int n);
-    void recursive_sequential(Mat& input_matrix, const unsigned int n); 
+    void iterative_sequential(Mat& input_matrix, const unsigned int n); 
     void iterative_parallel(Mat& input_matrix, const unsigned int n);
-    void recursive_parallel(Mat& input_matrix, const unsigned int n);
-    void recursive_seq_1D(SpVec& x, const unsigned n);
-    void inv_transform_1D(SpVec& x, const unsigned n);
-    static bool isRecursive;
+    void inv_transform_1D(SpVec& x);
     static bool isParallel;  
 
 };
