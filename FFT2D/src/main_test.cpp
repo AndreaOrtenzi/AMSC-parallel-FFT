@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
         #endif
         #endif
         #if TIME_IMPL
-            fill_input_matrix(xSpace, 2, i+1);
+            fill_input_matrix(xSpace, pow, i+1);
         }
         std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
         #endif
         #endif
         #if TIME_IMPL
-            fill_input_matrix(xSpace, 2, i+1);
+            fill_input_matrix(xSpace, pow, i+1);
         }
         std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
