@@ -4,6 +4,19 @@
 #define STB_WRITE_IMAGE_IMPL
 #include <stb_image_write.h>
 
+VideoProcessing::VideoProcessing(const std::string& videoFilePath) : videoFilePath(videoFilePath) {
+    // Initializing Q compression matrix:
+    Q.resize(8, 8);
+    Q << 16, 11, 10, 16, 24, 40, 51, 61,
+         12, 12, 14, 19, 26, 58, 60, 55,
+         14, 13, 16, 24, 40, 57, 69, 56,
+         14, 17, 22, 29, 51, 87, 80, 62,
+         18, 22, 37, 56, 68, 109, 103, 77,
+         24, 35, 55, 64, 81, 104, 113, 92,
+         49, 64, 78, 87, 103, 121, 120, 101,
+         72, 92, 95, 98, 112, 100, 103, 99;
+}
+
 
 void VideoProcessing::ExtractFrames(std::vector<int_Mat>& frames) {
 
@@ -103,7 +116,7 @@ void ConvertBlocks(const std::vector<int_Mat>& blocks, std::vector<cd_Mat>& cd_b
 
 
 void ApplyFFT(const std::vector<cd_Mat>& input_blocks, std::vector<cd_Mat>& frequency_blocks) {
-    // Assicurati che il vettore di output sia vuoto
+    // Vector of matrices with complex double entries must be empty
     frequency_blocks.clear();
 
     for (const cd_Mat& input_block : input_blocks) {
@@ -121,14 +134,55 @@ void ApplyFFT(const std::vector<cd_Mat>& input_blocks, std::vector<cd_Mat>& freq
 
 
 
-void VideoProcessing::QuantizeAndRound(cd_Mat& block) {
-    // 1) quantizzazione elemento per elemento utilizzando la matrice di quantizzazione Q
-    // 2) arrrotondare con ceil ciascun elemento quantizzato al valore intero più vicino come nel project_summer
+void VideoProcessing::Quantization(std::vector<cd_Mat>& frequency_blocks) {
+    // For each block in vector of frequency blocks, apply quantization + rounding to nearest integer
+    for (cd_Mat& block : frequency_blocks) {
+        for (int i = 0; i < block.rows(); i++) {
+            for (int j = 0; j < block.cols(); j++) {
+                block(i, j) = std::ceil(block(i,j) / Q(i,j) );
+            }
+        }
+    }
+
 }
 
-void VideoProcessing::InverseFFT(cd_Mat& block) {
-    // iFFT ad ogni blocco
+void VideoProcessing::DecodingBlocks(std::vector<cd_Mat>& frequency_blocks){
+    // Loop through blocks in vector of frequency blocks and reconstruct each quantized 8x8 block by multiply elementwise by Q:
+    for (cd_Mat& block : blocks) {
+        for (int i = 0; i < block.rows(); i++) {
+            for (int j = 0; j < block.cols(); j++) {
+                block(i, j) = block(i, j) * Q(i, j);
+            }
+        }
+    }
 }
+
+void VideoProcessing::InverseFFT(std::vector<cd_Mat>& frequency_blocks) {
+    // Loop through each block and apply the inverse FFT
+    for (cd_Mat& block : frequency_blocks) {
+        // Create a new block for the inverse transform:
+        cd_Mat inverse_block(block.rows(), block.cols());
+
+        FFT_2D fft(block, inverse_block);
+        fft.inv_transform_par();
+
+        // Replace the original block with the inverse transform:
+        block = inverse_block;
+
+        for (int i = 0; i < block.rows(); i++) {
+            for (int j = 0; j < block.cols(); j++) {
+                // Round the real part to the nearest integer:
+                double rounded_value = std::round(block(i, j).real());
+
+                // Add 128 and allocate the value to the real part of the element of the block:
+                rounded_value += 128.0;
+                // Set the real part of the element to the rounded value:
+                block(i, j).real(rounded_value);
+            }
+        }          
+    }
+}
+
 
 void VideoProcessing::ReconstructFrame(const std::vector<cd_Mat>& processedBlocks, int_Mat& reconstructedFrame) {
     // qua bisogna ricostruire il frame a partire dai blocchi processati
