@@ -112,8 +112,8 @@ void fill_input_matrix(Mat& matToFill, unsigned int pow, unsigned int seed = 10)
     // Generate random complex numbers between 0.0 and and 250.0 and fill the matrix
     for (unsigned int i = 0; i < size; ++i) {
         for (unsigned int j = 0; j < size; ++j) {
-            int real_part = (static_cast<double>(rand()) / RAND_MAX) * MAX_MAT_VALUES;
-            int imag_part = (static_cast<double>(rand()) / RAND_MAX) * 0;
+            double real_part = (static_cast<double>(rand()) / RAND_MAX) * MAX_MAT_VALUES;
+            double imag_part = (static_cast<double>(rand()) / RAND_MAX) * MAX_MAT_VALUES;
             matToFill(i, j) = std::complex<double>(real_part, imag_part);
         }
     }
