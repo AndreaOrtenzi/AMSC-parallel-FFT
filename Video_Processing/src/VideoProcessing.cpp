@@ -19,11 +19,11 @@ VideoProcessing::VideoProcessing(const std::string& videoFilePath) : videoFilePa
     // Initializing rows and cols of input frames:
     frame_rows = 0;
     frame_cols = 0;
+    numFrames  = 0;
 }
 
 
 void VideoProcessing::ExtractFrames(std::vector<Mat>& frames) {
-
     // Open the video utilising ffmpeg:
     AVFormatContext* formatContext = avformat_alloc_context();
     if (avformat_open_input(&formatContext, videoFilePath.c_str(), nullptr, nullptr) != 0) {
@@ -33,31 +33,41 @@ void VideoProcessing::ExtractFrames(std::vector<Mat>& frames) {
     // Frame structure:
     AVFrame* frame = av_frame_alloc();
     int frameNumber = 0; 
-
-    // Number of rows and cols is costant for each frame:
-    frame_cols = frame->width;
-    frame_rows = frame->height;
+    numFrames = 0;
 
     // Extract frame from video until av_read_frame gives a negative value, it means that all frames have been read:
     while (av_read_frame(formatContext, frame) >= 0) {
-        // utilizing stb_image.h takes frame in a integer matrix
-        Mat matrix(frame_rows, frame_cols);
+        // Create a matrix and copy frame data into it:
+        Mat matrix(frame->height, frame->width);
+        for (int x = 0; x < frame->height; ++x) {
+            for (int y = 0; y < frame->width; ++y) {
+                matrix(x, y) = frame->data[0][x * frame->linesize[0] + y];
+            }
+        }
 
         // Add matrix to frames vector:
         frames.push_back(matrix);
 
-        // Save frame in version .jpg in 'frames' directory:
+        // Save frame as a JPEG image in the 'frames' directory:
         std::string frameFileName = "../input_frames/frame_" + std::to_string(frameNumber++) + ".jpg";
-        stbi_write_jpg(frameFileName.c_str(), frame_cols , frame_rows, 3, frame->data[0], 100);
+        stbi_write_jpg(frameFileName.c_str(), frame->width, frame->height, 1, matrix.data(), 100);
+
+        // Increase the number of frames read:
+        numFrames++;
 
         // Free the frame:
         av_frame_unref(frame);
     }
 
+    // Number of frames read:
+    std::cout << numFrames << " frames have been read. " << << std::endl;
+
+
     // Free resources:
     avformat_close_input(&formatContext);
     av_frame_free(&frame);
 }
+
 
 
 void VideoProcessing::DivideIntoBlocks(const std::vector<Mat>& frames, std::vector<Mat>& blocks) {
@@ -89,14 +99,16 @@ void VideoProcessing::Subtract128(std::vector<Mat>& blocks) {
 
         for (int j = 0; j < numRows; j++) {
             for (int k = 0; k < numCols; k++) {
-                block(j, k) -= 128;
+                block(j, k).real() -= 128;
+                // Set to zero imaginary part:
+                block(j, k).imag() = 0.0;
             }
         }
     }
 }
 
 
-void ApplyDCT(const std::vector<Mat>& input_blocks, std::vector<Mat>& frequency_blocks) {
+void ApplyFFT(const std::vector<Mat>& input_blocks, std::vector<Mat>& frequency_blocks) {
     // Vector of matrices with complex double entries must be empty
     frequency_blocks.clear();
 
@@ -104,11 +116,11 @@ void ApplyDCT(const std::vector<Mat>& input_blocks, std::vector<Mat>& frequency_
         // Create new block with same dimensions
         Mat output_block = input_block;
 
-        // DCT on input block:
-        DCT_2D dct(input_block, output_block);
-        dct.transform_par();
+        // FFT on input block:
+        FFT_2D fft(input_block, output_block);
+        fft.transform_par();
 
-        // Add new block to vector of complex double entries matrices
+        // Add new block to vector of frequencies matrix
         frequency_blocks.push_back(output_block);
     }
 }
@@ -116,11 +128,12 @@ void ApplyDCT(const std::vector<Mat>& input_blocks, std::vector<Mat>& frequency_
 
 
 void VideoProcessing::Quantization(std::vector<Mat>& frequency_blocks) {
-    // For each block in vector of frequency blocks, apply quantization + rounding to nearest integer
+    // For each block in vector of frequency blocks
     for (Mat& block : frequency_blocks) {
         for (int i = 0; i < block.rows(); i++) {
             for (int j = 0; j < block.cols(); j++) {
-                block(i, j) = std::ceil(block(i,j) / Q(i,j) );
+                // Apply quantization + rounding to nearest integer, ignoring the imaginary part:
+                block(i, j) = static_cast<int>( std::round(block(i, j) / Q(i, j)) );
             }
         }
     }
@@ -132,20 +145,20 @@ void VideoProcessing::DecodingBlocks(std::vector<Mat>& frequency_blocks){
     for (Mat& block : blocks) {
         for (int i = 0; i < block.rows(); i++) {
             for (int j = 0; j < block.cols(); j++) {
-                block(i, j) = block(i, j) * Q(i, j);
+                block(i, j) = static_cast<int>(block(i, j) * Q(i, j));
             }
         }
     }
 }
 
-void VideoProcessing::InverseDCT(std::vector<Mat>& frequency_blocks) {
-    // Loop through each block and apply the inverse DCT
+void VideoProcessing::InverseFFT(std::vector<Mat>& frequency_blocks) {
+    // Loop through each block and apply the inverse FFT for each block in vector:
     for (Mat& block : frequency_blocks) {
         // Create a new block for the inverse transform:
         Mat inverse_block(block.rows(), block.cols());
 
-        DCT_2D dct(block, inverse_block);
-        dct.iTransform();
+        FFT_2D fft(block, inverse_block);
+        fft.iTransform();
 
         // Replace the original block with the inverse transform:
         block = inverse_block;
@@ -158,16 +171,92 @@ void VideoProcessing::InverseDCT(std::vector<Mat>& frequency_blocks) {
                 // Add 128 and allocate the value to the element of the block:
                 rounded_value += 128;
                 // Set the real part of the element to the rounded value:
-                block(i, j) = rounded_value;
+                block(i, j).real() = rounded_value;
+                block(i, j).imag() = 0;
             }
         }          
     }
 }
 
-void VideoProcessing::ReconstructFrame(std::vector<Mat>& frequency_blocks) {
-    // Ricostruire il frame passando per i blocchi di frequency blocks
+void VideoProcessing::ReconstructFrames(std::vector<Mat>& frequency_blocks) {
+    // Total number of blocks must be consistent with the number of frames:
+    int num_blocks_per_frame = (frame_rows / 8) * (frame_cols / 8);
+    int expected_total_blocks = num_blocks_per_frame * numFrames;
+
+    if (frequency_blocks.size() != expected_total_blocks) {
+        std::cerr << "Dimension of frequency blocks'vector is not consistent with the expected number of total blocks!" << std::endl;
+        return;
+    }
+
+    // Create matrices'vector for reconstructed frames with size equal to number of frames
+    std::vector<Mat> reconstructed_frames(numFrames);
+
+    // Index to track blocks in the frequency_blocks vector
+    int block_index = 0;
+
+    for (int frame_index = 0; frame_index < numFrames; ++frame_index) {
+        // Create matrix for current frame:
+        Mat& current_frame = reconstructed_frames[frame_index];
+        current_frame.resize(frame_rows, frame_cols);
+
+        // Assembly blocks in current frame:
+        for (int i = 0; i < frame_rows; i += 8) {
+            for (int j = 0; j < frame_cols; j += 8) {
+                // Copy the current block into the current frame:
+                for (int x = 0; x < 8; x++) {
+                    for (int y = 0; y < 8; y++) {
+                        current_frame(i + x, j + y) = frequency_blocks[block_index](x, y);
+                    }
+                }
+                block_index++;
+            }
+        }
+    }
+
+    // Check for dimension of reconstructed_frames vector: 
+    if (reconstructed_frames.size() != numFrames){
+        std::cerr << "Reconstructed frames' vector has dimension  different by the expected one. " <<std::endl;
+        return;
+    }
+
 }
 
-void VideoProcessing::SaveVideo(const std::string& outputVideoFilePath, const std::vector<Mat>& frames) {
-    // salvataggio dei frame come video utilizzando stb_image_write.h
+
+void SaveVideo(const std::string& outputVideoFilePath, const std::vector<Mat>& reconstructed_frames) {
+    // Output folder for JPEG images
+    const std::string outputImagesFolder = "../output_frames/";
+
+    // Save JPEG images:
+    for (int frameIndex = 0; frameIndex < reconstructed_frames.size(); frameIndex++) {
+        const Mat& frame = reconstructed_frames[frameIndex];
+
+        // Filename for JPEG image
+        std::string frameFileName = outputImagesFolder + "frame_" + std::to_string(frameIndex) + ".jpg";
+
+        // Create a matrix of 8-bit integers to save the JPEG image
+        Eigen::MatrixXi jpegFrame(frame.rows(), frame.cols());
+        for (int i = 0; i < frame.rows(); i++) {
+            for (int j = 0; j < frame.cols(); j++) {
+                // Truncate the imaginary part and round the real part:
+                jpegFrame(i, j) = std::round(frame(i, j).real());
+            }
+        }
+
+        // Convert integer matrix and save it as image with stbi_write:
+        stbi_write_jpg(frameFileName.c_str(), jpegFrame.cols(), jpegFrame.rows(), 1, jpegFrame.data(), 100);
+    }
+
+    // Reconstruct the .mp4 video using ffmpeg.h:
+    const std::string ffmpegCmd = "ffmpeg -framerate 30 -i " + outputImagesFolder + "frame_%d.jpg -c:v libx264 -pix_fmt yuv420p " + outputVideoFilePath;
+    int ffmpegResult = system(ffmpegCmd.c_str());
+    if (ffmpegResult != 0) {
+        std::cerr << "Error during the creation of the video with ffmpeg: " << strerror(errno) << endl;
+    }else{
+        std::cout << "Compressed video successfully created:" << outputVideoFilePath << endl;
+        }
 }
+
+
+
+
+    
