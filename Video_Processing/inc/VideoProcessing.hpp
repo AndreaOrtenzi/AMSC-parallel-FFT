@@ -1,4 +1,4 @@
-#include "../../FFT2D/inc/FFT_2D.hpp"
+#include "../../DCT2D/inc/DCT_2D.hpp"
 #include <iostream>
 #include <vector>
 #include <complex>
@@ -13,9 +13,7 @@
 
 using namespace std;
 using namespace Eigen;
-using int_Mat = Eigen::MatrixXi; // integer entries for matrix, we need it for storing matrices from frames
-using cd_Mat = Eigen::MatrixXcd; // complex double entries for matrix, we need it for FFT_2D class
-
+using Mat = Eigen::MatrixXi; // integer entries for matrix, we need it for storing matrices from frames
 
 class VideoProcessing {
 public:
@@ -24,20 +22,18 @@ public:
     
 private:
     std::string videoFilePath;
-    FFT_2D fft; 
-    int_Mat Q;
+    DCT_2D dct; 
+    Mat Q;
     int frame_rows;
     int frame_cols;
     
-    void ExtractFrames(std::vector<intMat>& frames);
-    void DivideIntoBlocks(const intMat& frame, std::vector<intMat>& blocks);
-    void Subtract128(std::vector<int_Mat>& blocks);
-    void ConvertBlocks(const std::vector<int_Mat>& blocks, std::vector<cd_Mat>& cd_blocks); //convert from int_Mat blocks to cd_Mat blocks
-    void ApplyFFT(const std::vector<cd_Mat>& blocks, std::vector<cd_Mat>& frequency_blocks);
-    void Quantization(std::vector<cd_Mat>& frequency_blocks);
-    void DecodingBlocks(std::vector<cd_Mat>& frequency_blocks);
-    void InverseFFT(std::vector<cd_Mat>& frequency_blocks);
-    void NewConvertBlocks(std::vector<cd_Mat>& cd_blocks,  std::vector<int_Mat>& intblocks);
-    void ReconstructFrame(const std::vector<cd_Mat>& processedBlocks, intMat& reconstructedFrame);
-    void SaveVideo(const std::string& outputVideoFilePath, const std::vector<intMat>& frames);
+    void ExtractFrames(std::vector<Mat>& frames);
+    void DivideIntoBlocks(const Mat& frame, std::vector<Mat>& blocks);
+    void Subtract128(std::vector<Mat>& blocks);
+    void ApplyDCT(const std::vector<Mat>& blocks, std::vector<Mat>& frequency_blocks);
+    void Quantization(std::vector<Mat>& frequency_blocks);
+    void DecodingBlocks(std::vector<Mat>& frequency_blocks);
+    void InverseDCT(std::vector<Mat>& frequency_blocks);
+    void ReconstructFrame(const std::vector<Mat>& processedBlocks, Mat& reconstructedFrame);
+    void SaveVideo(const std::string& outputVideoFilePath, const std::vector<Mat>& frames);
 };
