@@ -17,7 +17,6 @@ const Mat& DCT_2D::getFrequencyValues() const {
     return frequencyValues;
 }
 
-
 //The inverse of DCT-II is DCT-III multiplied by scaling factor 2/N (https://en.wikipedia.org/wiki/Discrete_cosine_transform)
 void DCT_2D::inv_transform_1D(Vec& x) {
     unsigned int N = x.size();
@@ -32,7 +31,6 @@ void DCT_2D::inv_transform_1D(Vec& x) {
         x[i] = static_cast<int>(sum * scaling_factor);
     }
 }
-
 
 void DCT_2D::transform_par(){
     // Resize frequency matrix: 
@@ -81,7 +79,6 @@ void DCT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n) {
         input_matrix.col(k) = col_vector;
     }
 }
-
 
 void DCT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n) {
 
