@@ -15,6 +15,10 @@ VideoProcessing::VideoProcessing(const std::string& videoFilePath) : videoFilePa
          24, 35, 55, 64, 81, 104, 113, 92,
          49, 64, 78, 87, 103, 121, 120, 101,
          72, 92, 95, 98, 112, 100, 103, 99;
+
+    // Initializing rows and cols of input frames:
+    frame_rows = 0;
+    frame_cols = 0;
 }
 
 
@@ -30,19 +34,21 @@ void VideoProcessing::ExtractFrames(std::vector<int_Mat>& frames) {
     AVFrame* frame = av_frame_alloc();
     int frameNumber = 0; 
 
+    // Number of rows and cols is costant for each frame:
+    frame_cols = frame->width;
+    frame_rows = frame->height;
+
     // Extract frame from video until av_read_frame gives a negative value, it means that all frames have been read:
     while (av_read_frame(formatContext, frame) >= 0) {
         // utilizing stb_image.h takes frame in a integer matrix
-        int width = frame->width;
-        int height = frame->height;
-        int_Mat matrix(height, width);
+        int_Mat matrix(frame_rows, frame_cols);
 
         // Add matrix to frames vector:
         frames.push_back(matrix);
 
         // Save frame in version .jpg in 'frames' directory:
-        std::string frameFileName = "../frames/frame_" + std::to_string(frameNumber++) + ".jpg";
-        stbi_write_jpg(frameFileName.c_str(), width, height, 3, frame->data[0], 100);
+        std::string frameFileName = "../input_frames/frame_" + std::to_string(frameNumber++) + ".jpg";
+        stbi_write_jpg(frameFileName.c_str(), frame_cols , frame_rows, 3, frame->data[0], 100);
 
         // Free the frame:
         av_frame_unref(frame);
@@ -90,7 +96,8 @@ void VideoProcessing::Subtract128(std::vector<int_Mat>& blocks) {
 }
 
 void ConvertBlocks(const std::vector<int_Mat>& blocks, std::vector<cd_Mat>& cd_blocks) {
-    cd_blocks.clear(); // Assicurati che il vettore di output sia vuoto
+    // Vector of matrices with complex double entries must be empty
+    cd_blocks.clear(); 
 
     for (const int_Mat& intBlock : blocks) {
         // Create new block MatrixXcd with same dimensions:
@@ -183,9 +190,29 @@ void VideoProcessing::InverseFFT(std::vector<cd_Mat>& frequency_blocks) {
     }
 }
 
+void VideoProcessing::NewConvertBlocks(std::vector<cd_Mat>& cd_blocks, std::vector<int_Mat>& new_frame_blocks) {
+    // New vector of integer block matrices must be empty:
+    new_frame_blocks.clear();
 
-void VideoProcessing::ReconstructFrame(const std::vector<cd_Mat>& processedBlocks, int_Mat& reconstructedFrame) {
-    // qua bisogna ricostruire il frame a partire dai blocchi processati
+    for (const cd_Mat& cd_block : cd_blocks) {
+        int_Mat int_block(cd_block.rows(), cd_block.cols());
+
+        // Copy values converting from double to int:
+        for (int i = 0; i < cd_block.rows(); ++i) {
+            for (int j = 0; j < cd_block.cols(); ++j) {
+                // Ignore imaginary part:
+                int_block(i, j) = static_cast<int>(cd_block(i, j).real());
+            }
+        }
+
+        // Push new block to vector:
+        new_frame_blocks.push_back(int_block);
+    }
+}
+
+
+void VideoProcessing::ReconstructFrame(std::vector<int_Mat>& new_frame_blocks) {
+
 }
 
 void VideoProcessing::SaveVideo(const std::string& outputVideoFilePath, const std::vector<int_Mat>& frames) {
