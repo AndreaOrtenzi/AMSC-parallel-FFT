@@ -26,6 +26,8 @@ private:
     std::string videoFilePath;
     FFT_2D fft; 
     int_Mat Q;
+    int frame_rows;
+    int frame_cols;
     
     void ExtractFrames(std::vector<intMat>& frames);
     void DivideIntoBlocks(const intMat& frame, std::vector<intMat>& blocks);
@@ -35,7 +37,7 @@ private:
     void Quantization(std::vector<cd_Mat>& frequency_blocks);
     void DecodingBlocks(std::vector<cd_Mat>& frequency_blocks);
     void InverseFFT(std::vector<cd_Mat>& frequency_blocks);
-    //void NewConvertBlocks(std::vector<cd_Mat>& cd_blocks,  std::vector<int_Mat>& intblocks);
+    void NewConvertBlocks(std::vector<cd_Mat>& cd_blocks,  std::vector<int_Mat>& intblocks);
     void ReconstructFrame(const std::vector<cd_Mat>& processedBlocks, intMat& reconstructedFrame);
     void SaveVideo(const std::string& outputVideoFilePath, const std::vector<intMat>& frames);
 };
