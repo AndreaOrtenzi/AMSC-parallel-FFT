@@ -16,7 +16,7 @@
 #define NUM_ITER_TO_TIME 1
 #endif
 #ifndef MAX_MAT_VALUES
-#define MAX_MAT_VALUES 250.0
+#define MAX_MAT_VALUES 250
 #endif
 
 
@@ -100,6 +100,35 @@ int checkCorrectness(const string implemName, const Mat &correct, const Mat &toC
     std::cout << "Correct transformation in " << implemName << "!" << endl;
     return 0;
 }
+
+template <class T>
+int checkCorrectness(const string implemName, const Mat &correct, const std::vector<std::vector<T>> &toCheck) {
+    bool isCorrect = true;
+    constexpr double eps(1e-10 * MAX_MAT_VALUES);
+
+    for (int i = 0; i < correct.rows(); ++i) {
+        for (int j = 0; j < correct.cols(); ++j) {
+            const std::complex<double> &correctValue = correct.coeff(i, j);
+            const std::complex<double> &toCheckValue = toCheck[i][j];
+
+            if (std::abs(correctValue.imag() - toCheckValue.imag()) > eps ||
+                std::abs(correctValue.real() - toCheckValue.real()) > eps) {
+                std::cout << "Problem with element at (" << i << ", " << j << "): " << toCheckValue
+                          << ", It should be: " << correctValue << endl;
+                isCorrect = false;
+            }
+        }
+    }
+
+    if (!isCorrect) {
+        std::cout << "WRONG TRANSFORMATION in " << implemName << "!" << endl;
+        return 1;
+    }
+
+    std::cout << "Correct transformation in " << implemName << "!" << endl;
+    return 0;
+}
+
 #endif
 
 void fill_input_matrix(Mat& matToFill, unsigned int pow, unsigned int seed = 10)
@@ -115,6 +144,25 @@ void fill_input_matrix(Mat& matToFill, unsigned int pow, unsigned int seed = 10)
             double real_part = (static_cast<double>(rand()) / RAND_MAX) * MAX_MAT_VALUES;
             double imag_part = (static_cast<double>(rand()) / RAND_MAX) * MAX_MAT_VALUES;
             matToFill(i, j) = std::complex<double>(real_part, imag_part);
+        }
+    }
+}
+
+template <class T>
+void fill_input_matrix(std::vector<std::vector<T>> &matToFill, unsigned int pow, unsigned int seed = 10)
+{
+    srand(time(nullptr)*seed*0.1);
+    unsigned int size = std::pow(2, pow); // Calculate the size of the matrix
+
+    
+    // Set input matrix as 2^pow x 2^pow matrix
+    matToFill.resize(size);
+
+    // Generate random complex numbers between 0.0 and and 250.0 and fill the matrix
+    for (unsigned int i = 0; i < size; ++i) {
+        matToFill[i].resize(size);
+        for (unsigned int j = 0; j < size; ++j) {
+            matToFill[i][j] = static_cast<T>((rand() / RAND_MAX) * MAX_MAT_VALUES);
         }
     }
 }
@@ -171,6 +219,11 @@ int main(int argc, char *argv[]) {
     const unsigned int pow = std::log2(ROW_LENGTH);
     // Fill the matrix xSpace with random complex values:
     fill_input_matrix(xSpace, pow);
+    
+    std::vector<std::vector<unsigned char>> vecXSpace;
+    std::vector<std::vector<std::complex<double>>> vecXFreq;
+    fill_input_matrix(vecXSpace, pow);
+
     Mat xFreq(xSpace);
 
     #if CHECK_CORRECTNESS    
@@ -248,7 +301,7 @@ int main(int argc, char *argv[]) {
             begin = clock::now();
         #endif
 
-        fft2D.transform_seq();
+        fft2D.iterative_sequential(vecXSpace,vecXFreq);
         
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
@@ -256,7 +309,7 @@ int main(int argc, char *argv[]) {
             total += elapsed;
             DFT_2D(xSpace,xSpace.rows());
             #if CHECK_CORRECTNESS
-                checkCorrectness(implementationName, fft2D.getFrequencyValues(), xSpace);
+                checkCorrectness(implementationName, vecXFreq, xSpace);
             #endif
         #else
         #if CHECK_CORRECTNESS

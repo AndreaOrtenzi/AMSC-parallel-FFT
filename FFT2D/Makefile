@@ -6,9 +6,6 @@ OBJS_LIB := $(patsubst src/%.cpp,obj/%.o,$(SRCS_LIB))
 
 all: test2D.exe
 
-libourparallelFFT.a: $(OBJS_LIB)
-	ar rs libourparallelFFT.a $^
-
 test2D.exe: $(OBJS_LIB) obj/main_test.o
 	$(CXX) $(LDFLAGS) -fopenmp $^ -o test2D.exe
 
