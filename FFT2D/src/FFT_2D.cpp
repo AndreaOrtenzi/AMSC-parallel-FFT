@@ -77,8 +77,7 @@ void FFT_2D::transform_seq(){
 
 
 template <class C> 
-void FFT_2D::iterative_sequential(const std::vector<std::vector<C>>& input_matrix, // togliere const a input_matrix, ma prima controllare no const solo x swap
-     std::vector<std::vector<std::complex<double>>>& freq_matrix){
+void FFT_2D::iterative_sequential(std::vector<std::vector<C>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix){
 
     if (input_matrix.empty())
         return;
@@ -93,7 +92,7 @@ void FFT_2D::iterative_sequential(const std::vector<std::vector<C>>& input_matri
     
     //First pass: Apply FFT to each row
     for (unsigned int i = 0; i < n_rows; ++i) {
-        std::vector<C> &row_vector = freq_matrix[i];
+        std::vector<std::complex<double>> &row_vector = freq_matrix[i];
         row_vector.resize(n_cols);
 
         unsigned int ji = 0;
@@ -101,7 +100,7 @@ void FFT_2D::iterative_sequential(const std::vector<std::vector<C>>& input_matri
             ji = (ji << 1) | ((i >> k) & 1U);
         }
         if (ji > i) {
-            std::swap(input_matrix[i][i], input_matrix[i][j]);
+            std::swap(input_matrix[i][i], input_matrix[i][ji]);
         }
 
         // use last iteration to write column vectors and the first to not override input_matrix
@@ -112,8 +111,8 @@ void FFT_2D::iterative_sequential(const std::vector<std::vector<C>>& input_matri
             for (unsigned int k = 0; k < n_rows; k += m) {
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {
-                    std::complex<double> t = w * input_matrix[i][k + j + m / 2];
-                    std::complex<double> u = input_matrix[i][k + j];
+                    std::complex<double> t = w * static_cast<std::complex<double>>(input_matrix[i][k + j + m / 2]);
+                    std::complex<double> u = static_cast<std::complex<double>>(input_matrix[i][k + j]);
                     row_vector[k + j] = u + t;
                     row_vector[k + j + m / 2] = u - t;
                     w *= wm;
@@ -122,7 +121,7 @@ void FFT_2D::iterative_sequential(const std::vector<std::vector<C>>& input_matri
         }
         // swap again to restore original input_matrix
         if (ji > i) { 
-            std::swap(input_matrix[i][i], input_matrix[i][j]);
+            std::swap(input_matrix[i][i], input_matrix[i][ji]);
         }
 
         for (unsigned int s = 2; s < numBits; s++) {
@@ -160,9 +159,9 @@ void FFT_2D::iterative_sequential(const std::vector<std::vector<C>>& input_matri
     }
 
     //Second pass: Apply FFT to each column
-    numBits = static_cast<unsigned int>(log2(num_rows));
+    numBits = static_cast<unsigned int>(log2(n_rows));
     for (unsigned int i = 0; i < n_cols; ++i) {
-        std::vector<C> col_vector& = input_cols[i];
+        std::vector<std::complex<double>> &col_vector = input_cols[i];
         unsigned int j = 0;
         for (unsigned int k = 0; k < numBits; k++) {
             j = (j << 1) | ((i >> k) & 1U);

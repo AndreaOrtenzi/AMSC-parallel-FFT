@@ -197,6 +197,8 @@ void load_input(Mat& input_matrix, std::string& filename)
     std::cout<<"Loading has been successful." <<std::endl;
 }
 
+
+
 int main(int argc, char *argv[]) {
     GetPot cmdLine(argc, argv);
 
