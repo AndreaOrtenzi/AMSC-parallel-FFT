@@ -73,6 +73,28 @@ void DFT_2D(Mat& spatialValues, const unsigned int n) {
     }
 }
 
+template <class T>
+void DFT_2D(const std::vector<std::vector<T>> &spatialValues, std::vector<std::vector<std::complex<double>>> &frequencyValues) {
+    const unsigned int n = spatialValues.size();
+    frequencyValues.resize(n);
+
+    for (unsigned int k = 0; k < n; k++) {
+        frequencyValues[k].resize(n);
+        for (unsigned int l = 0; l < n; l++) {
+            std::complex<double> sum(0, 0);
+            for (unsigned int j = 0; j < n; j++) {
+                for (unsigned int i = 0; i < n; i++) {
+                    std::complex<double> term = static_cast<std::complex<double>>(spatialValues[i][j]) *
+                        std::exp(-2.0 * M_PI * std::complex<double>(0, 1) * static_cast<double>((k * i + l * j)) / static_cast<double>(n));
+                    
+                    sum += term;
+                }
+            }
+            frequencyValues[k][l] = sum;
+        }
+    }
+}
+
 #if CHECK_CORRECTNESS
 int checkCorrectness(const string implemName, const Mat &correct, const Mat &toCheck) {
     bool isCorrect = true;
@@ -162,7 +184,7 @@ void fill_input_matrix(std::vector<std::vector<T>> &matToFill, unsigned int pow,
     for (unsigned int i = 0; i < size; ++i) {
         matToFill[i].resize(size);
         for (unsigned int j = 0; j < size; ++j) {
-            matToFill[i][j] = static_cast<T>((rand() / RAND_MAX) * MAX_MAT_VALUES);
+            matToFill[i][j] = static_cast<T>((rand() % MAX_MAT_VALUES)  ); 
         }
     }
 }
@@ -311,7 +333,7 @@ int main(int argc, char *argv[]) {
             total += elapsed;
             DFT_2D(xSpace,xSpace.rows());
             #if CHECK_CORRECTNESS
-                checkCorrectness(implementationName, vecXFreq, xSpace);
+                checkCorrectness(implementationName, xSpace, vecXFreq);
             #endif
         #else
         #if CHECK_CORRECTNESS
