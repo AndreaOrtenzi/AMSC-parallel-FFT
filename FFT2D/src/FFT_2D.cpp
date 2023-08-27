@@ -319,8 +319,8 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
     }
     
 
-// Second pass: let's compute the parallel iterative FFT on columns:
-for(unsigned int i=0; i<n; i++){
+    // Second pass: let's compute the parallel iterative FFT on columns:
+    for(unsigned int i=0; i<n; i++){
         Vec col_vector = input_matrix.col(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(col_vector) firstprivate(n)
@@ -358,12 +358,11 @@ for(unsigned int i=0; i<n; i++){
 }
 
 void FFT_2D::iTransform() {
-    const auto t_i = high_resolution_clock::now();
     // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(n, n);
-    // Real coefficient 1/N :
+    // Real coefficient 1/N
     double N_inv = 1.0 / static_cast<double>(n);
-    std::cout << "***Inverse Transform starts ***" << std::endl;
+        std::cout << "***Start Inverse FFT Implementation***" << std::endl;
     
     //First pass: apply inverse FFT1D on each row:
     unsigned int numBits = static_cast<unsigned int>(log2(n));
@@ -394,10 +393,10 @@ void FFT_2D::iTransform() {
             }
         }
         
-        spatialValues.row(i) = row_vector * N_inv;
+        spatialValues.row(i) = row_vector;
     }
 
-    //Second pass: Apply FFT to each column
+    //Second pass: apply inverse FFT on each column:
     for (unsigned int i = 0; i < n; ++i) {
         Vec col_vector = frequencyValues.col(i);
         unsigned int j = 0;
@@ -425,11 +424,12 @@ void FFT_2D::iTransform() {
             }
         }
         
-        spatialValues.col(i) = col_vector * N_inv;
+        spatialValues.col(i) = col_vector;
     }
-
-    const auto t_f = high_resolution_clock::now();
-    const auto time_inverse = duration_cast<microseconds>(t_f - t_i).count();
-    std::cout << "*** Inverse Transform complete in " << time_inverse << " ms ***" << std::endl;
-    std::cout << "---------------------------------------------------------------\n" << endl;
+    // Factor 1/N^2 :
+    for (unsigned int i = 0; i < n; ++i){
+        for(unsigned int j = 0; j < n; ++j){
+            spatialValues(i, j) *= N_inv * N_inv;
+        }
+    }
 }
