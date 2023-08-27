@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++2a -Wall -fopenmp -I${mkEigenInc}
+CXXFLAGS = -std=c++2a -Wall -fopenmp -I${mkEigenInc} -Wno-deprecated
 
 SRCS_LIB := $(filter-out src/main_test.cpp, $(wildcard src/*.cpp))
 OBJS_LIB := $(patsubst src/%.cpp,obj/%.o,$(SRCS_LIB))
