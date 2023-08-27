@@ -426,7 +426,7 @@ void FFT_2D::iTransform() {
         
         spatialValues.col(i) = col_vector;
     }
-    // Factor 1/N^2 :
+    // Factor 1/N^2:
     for (unsigned int i = 0; i < n; ++i){
         for(unsigned int j = 0; j < n; ++j){
             spatialValues(i, j) *= N_inv * N_inv;
