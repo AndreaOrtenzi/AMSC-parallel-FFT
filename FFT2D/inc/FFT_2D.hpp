@@ -19,7 +19,7 @@ public:
 
     void transform_seq() override;
 
-    template <class C> void iterative_sequential(std::vector<std::vector<C>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix);
+    //template <class C> void iterative_sequential(std::vector<std::vector<C>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix);
 
     void iTransform() override;
 
