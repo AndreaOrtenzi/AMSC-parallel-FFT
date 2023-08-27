@@ -28,6 +28,6 @@ private:
     void iterative_sequential(Mat& input_matrix, const unsigned int n);
 
     void iterative_parallel(Mat& input_matrix, const unsigned int n);
-    void inv_transform_1D(SpVec& x);
+    void inv_transform_1D(Vec& x);
 
 };

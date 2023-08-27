@@ -6,6 +6,8 @@
 #include <cmath>
 #include <chrono>
 
+template void FFT_2D::iterative_sequential(std::vector<std::vector<unsigned char>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix);
+
 using namespace std; 
 using namespace std::chrono;
 
@@ -19,7 +21,7 @@ const Mat& FFT_2D::getFrequencyValues() const {
 
 //Same code for SequentialFFT::iTransform(const std::vector<std::complex<real>>& fValues), but I need the version 
 // with Eigen vector for FFT2D::inverse_transform():
-void FFT_2D::inv_transform_1D(SpVec& x) {
+void FFT_2D::inv_transform_1D(Vec& x) {
     
     unsigned int n = x.size();
 
@@ -204,16 +206,19 @@ void FFT_2D::iterative_sequential(std::vector<std::vector<C>>& input_matrix, std
 void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
     
     unsigned int numBits = static_cast<unsigned int>(log2(n));
-    //First pass: Apply FFT to each row
+    //First pass: Apply FFT to each row:
     for (unsigned int i = 0; i < n; ++i) {
-            SpVec row_vector = input_matrix.row(i);
+        Vec row_vector = input_matrix.row(i);
+        for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
-                j = (j << 1) | ((i >> k) & 1U);
+                j = (j << 1) | ((l >> k) & 1U);
             }
-            if (j > i) {
-                std::swap(row_vector[i], row_vector[j]);
+            if (j > l) {
+                std::swap(row_vector[l], row_vector[j]);
             }
+        }
+
         for (unsigned int s = 1; s <= numBits; s++) {
             unsigned int m = 1U << s; 
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
@@ -234,7 +239,7 @@ void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
 
     //Second pass: Apply FFT to each column
     for (unsigned int i = 0; i < n; ++i) {
-            SpVec col_vector = input_matrix.col(i);
+            Vec col_vector = input_matrix.col(i);
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
                 j = (j << 1) | ((i >> k) & 1U);
@@ -269,14 +274,14 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
     //******************************************************************
     //          Try with different numbers of threads 
     //unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
-    // unsigned int numThreads = 2;
-     unsigned int numThreads = 4;
+    unsigned int numThreads = 2;
+    // unsigned int numThreads = 4;
     // unsigned int numThreads = n;
     // ******************************************************************
 
 // First pass: Let's compute the parallel iterative FFT on rows:
     for(unsigned int i=0; i<n; i++){
-        SpVec row_vector = input_matrix.row(i);
+        Vec row_vector = input_matrix.row(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(row_vector) firstprivate(n)
         #pragma omp parallel for num_threads(numThreads) schedule(static)
@@ -313,7 +318,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
 
 // Second pass: let's compute the parallel iterative FFT on columns:
 for(unsigned int i=0; i<n; i++){
-        SpVec col_vector = input_matrix.col(i);
+        Vec col_vector = input_matrix.col(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(col_vector) firstprivate(n)
         #pragma omp parallel for num_threads(numThreads) schedule(static)
@@ -357,14 +362,14 @@ void FFT_2D::iTransform() {
     
     //First pass: apply inverse FFT1D on each row:
     for (unsigned int i = 0; i < n; ++i){
-        SpVec row_vector = frequencyValues.row(i);
+        Vec row_vector = frequencyValues.row(i);
         FFT_2D::inv_transform_1D(row_vector);
         spatialValues.row(i) = row_vector;
     }
 
     //Second pass: apply inverse FFT1D on each column:
     for (unsigned int i = 0; i < n; ++i){
-        SpVec col_vector = frequencyValues.col(i);
+        Vec col_vector = frequencyValues.col(i);
         FFT_2D::inv_transform_1D(col_vector);
         spatialValues.col(i) = col_vector;
     }

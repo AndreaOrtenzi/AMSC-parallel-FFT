@@ -11,7 +11,7 @@
 // Useful:
 using namespace std;
 using namespace Eigen;
-using SpVec = Eigen::VectorXcd;
+using Vec = Eigen::VectorXcd;
 using Mat = Eigen::MatrixXcd;
 
 class AbstractFFT2D {
