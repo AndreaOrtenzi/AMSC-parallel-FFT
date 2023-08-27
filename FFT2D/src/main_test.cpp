@@ -320,6 +320,13 @@ int main(int argc, char *argv[]) {
         #endif
         
         FFT_2D fft2D(xSpace, empty_matrix);
+
+        std::cout<<"Frequency values:" <<std::endl;
+        for (int j=0; j<xSpace.rows(); j++){
+            for(int k=0; k<xSpace.rows(); k++){
+                xSpace(j, k) = vecXSpace[j][k];
+            }
+        }
         
         #if TIME_IMPL
             begin = clock::now();
@@ -341,7 +348,7 @@ int main(int argc, char *argv[]) {
         #endif
         #endif
         #if TIME_IMPL
-            fill_input_matrix(xSpace, pow, i+1);
+            fill_input_matrix(vecXSpace, pow, i+1);
         }
         std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
