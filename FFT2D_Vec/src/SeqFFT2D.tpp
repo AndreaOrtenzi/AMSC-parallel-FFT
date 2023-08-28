@@ -35,14 +35,6 @@ void SeqFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
             for (unsigned int k = 0; k < n_cols; k += m) {
 
-                // unsigned int ji = 0;
-                // for (unsigned int l = 0; l < numBits; l++) {
-                //     ji = (ji << 1) | ((k >> l) & 1U);
-                // }
-                // if (ji > k) {
-                //     std::swap(input_matrix[i][k], input_matrix[i][ji]);
-                // }
-
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {
                     std::complex<double> t = w * static_cast<std::complex<double>>(input_matrix[i][k + j + m / 2]);
@@ -145,63 +137,6 @@ void SeqFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
         }
     }
 }
-/*
-template <class C> 
-void iTransform1D(std::vector<std::complex<double>>& fValues, std::vector<C>& spatialValues) {
-    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
-    // spatialValues.resize(N);
-    // for (unsigned int n = 0; n < N; ++n) {
-    //     std::complex<real> sum(0, 0);
-    //     for (unsigned int k = 0; k < N; ++k) {
-    //         std::complex<real> term = fValues[k] * std::exp(2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
-    //         sum += term;
-    //     }
-    //     spatialValues[n] = sum / static_cast<real>(N);
-    // }
-    spatialValues.resize(N);
-
-    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
-    const unsigned int n = fValues.size();
-
-    const unsigned int numBits = static_cast<unsigned int>(std::log2(n));
-    for (unsigned int i = 0; i < n; i++) 
-    {
-        unsigned int j = 0;
-        for (unsigned int k = 0; k < numBits; k++) {
-            j = (j << 1) | ((i >> k) & 1U);
-        }
-        if (j > i) {
-            std::swap(fValues[i], fValues[j]);
-        }
-    }
-    for (unsigned int s = 1; s <= numBits; s++) {
-        unsigned int m = 1U << s; 
-        std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
-        for (unsigned int k = 0; k < n; k += m) {
-            std::complex<double> w = 1.0;
-            for (unsigned int j = 0; j < m / 2; j++) {
-                std::complex<double> t = w * fValues[k + j + m / 2];
-                std::complex<double> u = fValues[k + j];
-                spatialValues[k + j] = u + t;
-                spatialValues[k + j + m / 2] = u - t;
-                w *= wm;
-            }
-        }
-    }
-
-    for (unsigned int i = 0; i < n; i++) 
-    {
-        spatialValues[i] /=  static_cast<double>(n);
-        unsigned int j = 0;
-        for (unsigned int k = 0; k < numBits; k++) {
-            j = (j << 1) | ((i >> k) & 1U);
-        }
-        if (j > i) {
-            std::swap(fValues[i], fValues[j]);
-        }
-    }
-}
-*/
 
 template <class C> 
 void SeqFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_matrix, std::vector<std::vector<C>>& space_matrix){
@@ -263,7 +198,6 @@ void SeqFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_
 
         // input_matrix.row(i) = row_vector;
     }
-
     
     //Second pass: Apply FFT to each column
     numBits = static_cast<unsigned int>(log2(n_rows));
@@ -314,30 +248,3 @@ void SeqFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_
         }
     }
 }
-/*
-    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
-    const unsigned int n = input_matrix.size();
-    space_matrix.resize(n);
-    
-    //First pass: apply inverse FFT1D on each row:
-    for (unsigned int i = 0; i < n; ++i){
-        std::vector<std::complex<double>> &row_vector = input_matrix[i];
-        FFT_2D::inv_transform_1D(row_vector);
-        spatialValues.row(i) = row_vector;
-    }
-
-
-
-    //Second pass: apply inverse FFT1D on each column:
-    for (unsigned int i = 0; i < n; ++i){
-        SpVec col_vector = frequencyValues.col(i);
-        FFT_2D::inv_transform_1D(col_vector);
-        spatialValues.col(i) = col_vector;
-    }
-
-    const auto t_f = high_resolution_clock::now();
-    const auto time_inverse = duration_cast<microseconds>(t_f - t_i).count();
-    std::cout << "*** Inverse Transform complete in " << time_inverse << " ms ***" << std::endl;
-    std::cout << "---------------------------------------------------------------\n" << endl;
-
-}*/

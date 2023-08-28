@@ -196,7 +196,6 @@ void ParFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_
             }
         }
 
-        // input_matrix.row(i) = row_vector;
     }
 
     
@@ -239,8 +238,7 @@ void ParFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_
                 for (unsigned int j = 0; j < m / 2; j++) {
                     std::complex<double> t = w * col_vector[k + j + m / 2];
                     std::complex<double> u = col_vector[k + j];
-                    // if (i == 1)
-                    //     std::cout << (u + t).real()  / static_cast<double>(n_cols) << ", m/2: " << (u - t).real() / static_cast<double>(n_cols) << std::endl;
+                    
                     space_matrix[k + j][i] = static_cast<C>( (u + t).real() / static_cast<double>(n_rows) + 0.5);
                     space_matrix[k + j + m / 2][i] = static_cast<C>((u - t).real() / static_cast<double>(n_rows) + 0.5);
                     w *= wm;
