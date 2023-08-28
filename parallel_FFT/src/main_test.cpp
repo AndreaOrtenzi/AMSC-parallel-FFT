@@ -24,7 +24,7 @@
 #endif
 
 #include <iostream>
-#include "GetPot"
+#include "../../lib/GetPot"
 #include <string.h>
 #include <complex>
 #include <cmath>
@@ -210,6 +210,9 @@ int main(int argc, char *argv[]) {
         
         #if CHECK_CORRECTNESS
             checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
+            // Check the inverse:
+            fft.iTransform();
+            checkCorrectness(implementationName + " inverse:", xSpace, fft.getSpatialValues());
         #endif
         
         #if TIME_IMPL

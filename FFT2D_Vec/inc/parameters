@@ -1,0 +1,34 @@
+#ifndef ROW_LENGTH
+#define ROW_LENGTH 256
+#endif
+
+#ifndef CHECK_CORRECTNESS
+#define CHECK_CORRECTNESS false
+#endif
+
+#ifndef TIME_IMPL
+#define TIME_IMPL true
+#endif
+
+#if TIME_IMPL
+#ifndef NUM_ITER_TO_TIME
+#define NUM_ITER_TO_TIME 100
+#endif
+#else
+#define NUM_ITER_TO_TIME 1
+#endif
+
+#ifndef MAX_MAT_VALUES
+#define MAX_MAT_VALUES 250.0
+#endif
+
+#ifndef SEQ_IMPL
+#define SEQ_IMPL true
+#endif
+
+#ifndef PAR_IMPL
+#define PAR_IMPL true
+#endif
+
+// #include <cstdlib>
+#define ROUND_TO_ZERO(val) (std::abs(val) < 1e-5 ? 0: val)
