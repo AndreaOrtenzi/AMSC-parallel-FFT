@@ -23,11 +23,18 @@
 #endif
 
 #ifndef SEQ_IMPL
-#define SEQ_IMPL true
+#define SEQ_IMPL false
 #endif
 
 #ifndef PAR_IMPL
 #define PAR_IMPL true
+#endif
+
+#if PAR_IMPL
+#ifndef NUM_THREADS
+// 0 is used for max_threads
+#define NUM_THREADS 0
+#endif
 #endif
 
 // #include <cstdlib>

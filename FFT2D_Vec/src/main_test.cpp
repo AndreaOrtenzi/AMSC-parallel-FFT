@@ -121,6 +121,10 @@ int main(int argc, char *argv[]) {
     // Set testing parameters:
     const unsigned int rowlength = cmdLine.follow(ROW_LENGTH, "-N");
     const unsigned int iterToTime = cmdLine.follow(NUM_ITER_TO_TIME, "-iTT");
+    const unsigned int numThreads = cmdLine.follow(NUM_THREADS == 0 ? omp_get_max_threads() : NUM_THREADS, "-nTH");
+
+    std::cout << "---------------- FFT2D on matrices "<< rowlength << "x" << rowlength <<" ----------------" << std::endl;
+    std::cout << "--------------------------------------------------------------------------------" << std::endl << std::endl;
     
     // set all it's needed to time the execution
     #if TIME_IMPL
@@ -215,7 +219,7 @@ int main(int argc, char *argv[]) {
     //parallel implementation: 
     #if PAR_IMPL
     {
-        const std::string implementationName = "Parallel FFT 2D implementation";
+        const std::string implementationName = "Parallel FFT 2D implementation with " + std::to_string(numThreads) + " threads";
         std::cout << "----------------"<< implementationName <<"----------------" << std::endl;
 
         unsigned int i = 0;
@@ -225,7 +229,7 @@ int main(int argc, char *argv[]) {
             begin = clock::now();
         #endif
 
-        ParFFT2D::trasform(xSpace,xFreq);
+        ParFFT2D::trasform(xSpace,xFreq, numThreads);
         
         #if TIME_IMPL
             double elapsed = std::chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
@@ -238,7 +242,7 @@ int main(int argc, char *argv[]) {
             checkCorrectness(implementationName, correctXFreq, xFreq);
             
             std::cout << "Check inverse correctness of the inverse: " << std::endl;
-            ParFFT2D::iTransform(correctXFreq,xSpaceToCheck);
+            ParFFT2D::iTransform(correctXFreq,xSpaceToCheck, numThreads);
             checkCorrectness(implementationName + " inverse", xSpace, xSpaceToCheck);
         #endif
 

@@ -15,7 +15,7 @@ public:
 
     const Mat& getFrequencyValues() const override;
   
-    void transform_par() override;
+    void transform_par(const unsigned int numThreads) override;
 
     void transform_seq() override;
 
@@ -25,7 +25,7 @@ private:
 
     void iterative_sequential(Mat& input_matrix, const unsigned int n);
 
-    void iterative_parallel(Mat& input_matrix, const unsigned int n);
+    void iterative_parallel(Mat& input_matrix, const unsigned int n, const unsigned int numThreads);
     void inv_transform_1D(Vec& x);
 
 };

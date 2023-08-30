@@ -29,6 +29,12 @@
 #ifndef PAR_IMPL
 #define PAR_IMPL true
 #endif
+#if PAR_IMPL
+#ifndef NUM_THREADS
+// 0 is used for max_threads
+#define NUM_THREADS 0
+#endif
+#endif
 
 // #include <cstdlib>
 #define ROUND_TO_ZERO(val) (std::abs(val) < 1e-5 ? 0: val)

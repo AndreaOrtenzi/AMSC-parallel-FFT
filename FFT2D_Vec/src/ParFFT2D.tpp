@@ -1,6 +1,6 @@
 
 template <class C> 
-void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix){
+void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix, const unsigned int n_threads){
 
     if (input_matrix.empty())
         return;
@@ -14,7 +14,7 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
     freq_matrix.resize(n_rows);
     
     //First pass: Apply FFT to each row
-    #pragma omp parallel for firstprivate(n_cols, n_rows, numBits)
+    #pragma omp parallel for num_threads(n_threads) firstprivate(n_cols, n_rows, numBits)
     for (unsigned int i = 0; i < n_rows; ++i) {
         std::vector<std::complex<double>> &row_vector = freq_matrix[i];
         row_vector.resize(n_cols);
@@ -92,7 +92,7 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
     //Second pass: Apply FFT to each column
     numBits = static_cast<unsigned int>(log2(n_rows));
 
-    #pragma omp parallel for firstprivate(n_cols, n_rows, numBits)
+    #pragma omp parallel for num_threads(n_threads) firstprivate(n_cols, n_rows, numBits)
     for (unsigned int i = 0; i < n_cols; ++i) {
         std::vector<std::complex<double>> &col_vector = input_cols[i];
         
@@ -139,7 +139,7 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
 }
 
 template <class C> 
-void ParFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_matrix, std::vector<std::vector<C>>& space_matrix){
+void ParFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_matrix, std::vector<std::vector<C>>& space_matrix, const unsigned int n_threads){
     if (input_matrix.empty())
         return;
         
@@ -152,6 +152,7 @@ void ParFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_
     space_matrix.resize(n_rows);
     
     //First pass: Apply iFFT to each row
+    #pragma omp parallel for num_threads(n_threads) firstprivate(n_cols, n_rows, numBits)
     for (unsigned int i = 0; i < n_rows; ++i) {
         space_matrix[i].resize(n_cols);
         std::vector<std::complex<double>> row_vector = input_matrix[i];
@@ -201,6 +202,7 @@ void ParFFT2D::iTransform(std::vector<std::vector<std::complex<double>>>& input_
     
     //Second pass: Apply FFT to each column
     numBits = static_cast<unsigned int>(log2(n_rows));
+    #pragma omp parallel for num_threads(n_threads) firstprivate(n_cols, n_rows, numBits)
     for (unsigned int i = 0; i < n_cols; ++i) {
         std::vector<std::complex<double>> &col_vector = input_cols[i];
         

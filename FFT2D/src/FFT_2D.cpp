@@ -59,13 +59,13 @@ void FFT_2D::inv_transform_1D(Vec& x) {
     }
 }
 
-void FFT_2D::transform_par(){
+void FFT_2D::transform_par(const unsigned int numThreads){
     // Resize frequency matrix: 
     frequencyValues.resize(n, n);
 
     std::cout << "***Start Parallel Iterative Implementation***" << std::endl;
     frequencyValues = spatialValues;
-    iterative_parallel(frequencyValues,frequencyValues.rows());
+    iterative_parallel(frequencyValues,frequencyValues.rows(), numThreads);
 }
 
 void FFT_2D::transform_seq(){
@@ -143,11 +143,11 @@ void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
 
 }
 
-void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
+void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const unsigned int numThreads){
    
    unsigned int numBits = static_cast<unsigned int>(log2(n));
     // Maximum number of threads
-    int max_num_threads = omp_get_max_threads();
+    // int numThreads = omp_get_max_threads();
     //******************************************************************
     //          Try with different numbers of threads 
     //unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
@@ -161,7 +161,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
         Vec row_vector = input_matrix.row(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(row_vector) firstprivate(n)
-        omp_set_num_threads(max_num_threads);
+        omp_set_num_threads(numThreads);
         #pragma omp parallel for schedule(static)
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
@@ -199,7 +199,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
         Vec col_vector = input_matrix.col(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(col_vector) firstprivate(n)
-        omp_set_num_threads(max_num_threads);
+        omp_set_num_threads(numThreads);
         #pragma omp parallel for schedule(static)
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;

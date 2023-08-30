@@ -30,4 +30,7 @@
 *.exe
 *.out
 *.app
-FFT2D/src/main_nuovo.cpp
+
+*.json
+*.mp4
+*.dat

@@ -138,12 +138,16 @@ int main(int argc, char *argv[]) {
     // Set testing parameters:
     const unsigned int rowlength = cmdLine.follow(ROW_LENGTH, "-N");
     const unsigned int iterToTime = cmdLine.follow(NUM_ITER_TO_TIME, "-iTT");
+    const unsigned int numThreads = cmdLine.follow(NUM_THREADS == 0 ? omp_get_max_threads() : NUM_THREADS, "-nTH");
+
+    std::cout << "---------------- FFT2D on matrices "<< rowlength << "x" << rowlength <<" ----------------" << std::endl;
+    std::cout << "--------------------------------------------------------------------------------" << std::endl << std::endl;
     
     // set all it's needed to time the execution
     #if TIME_IMPL
     using clock = std::chrono::steady_clock;
 	using unitOfTime = std::chrono::duration<double, std::micro>;
-    const string unitTimeStr = "\u03BCs";
+    const string unitTimeStr = " \u03BCs";
 
     chrono::time_point<clock> begin;
     double total = 0.0;
@@ -260,7 +264,7 @@ int main(int argc, char *argv[]) {
     //parallel implementation: 
     #if PAR_IMPL
     {
-        const string implementationName = "Parallel FFT 2D implementation";
+        const string implementationName = "Parallel FFT 2D implementation with " + std::str(numThreads) + " threads";
         std::cout << "----------------"<< implementationName <<"----------------" << endl;
 
         FFT_2D fft2D(xSpace, xFreq);
@@ -272,7 +276,7 @@ int main(int argc, char *argv[]) {
             begin = clock::now();
         #endif
 
-        fft2D.transform_par();
+        fft2D.transform_par(numThreads);
         
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
