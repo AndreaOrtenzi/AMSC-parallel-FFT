@@ -4,7 +4,7 @@
 #include <random>
 #include <chrono>
 #ifndef ROW_LENGTH
-#define POW 11
+#define POW 10
 #endif
 #ifndef MAX_MAT_VALUES
 #define MAX_MAT_VALUES 255
