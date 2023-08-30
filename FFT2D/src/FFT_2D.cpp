@@ -358,11 +358,11 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
 }
 
 void FFT_2D::iTransform() {
-    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
+    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values:
     spatialValues.resize(n, n);
     // Real coefficient 1/N
     double N_inv = 1.0 / static_cast<double>(n);
-        std::cout << "***Start Inverse FFT Implementation***" << std::endl;
+    std::cout << "***Start Inverse FFT Implementation***" << std::endl;
     
     //First pass: apply inverse FFT1D on each row:
     unsigned int numBits = static_cast<unsigned int>(log2(n));
@@ -396,9 +396,9 @@ void FFT_2D::iTransform() {
         spatialValues.row(i) = row_vector;
     }
 
-    //Second pass: apply inverse FFT on each column:
+    // Second pass: apply inverse FFT on each column:
     for (unsigned int i = 0; i < n; ++i) {
-        Vec col_vector = frequencyValues.col(i);
+        Vec col_vector = spatialValues.col(i);
         unsigned int j = 0;
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
@@ -426,9 +426,9 @@ void FFT_2D::iTransform() {
         
         spatialValues.col(i) = col_vector;
     }
-    // Factor 1/N^2:
-    for (unsigned int i = 0; i < n; ++i){
-        for(unsigned int j = 0; j < n; ++j){
+    // Factorize per 1/N^2:
+    for (unsigned int i = 0; i < spatialValues.rows(); ++i){
+        for(unsigned int j = 0; j < spatialValues.cols(); ++j){
             spatialValues(i, j) *= N_inv * N_inv;
         }
     }
