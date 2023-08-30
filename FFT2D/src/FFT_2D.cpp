@@ -151,8 +151,8 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
     //          Try with different numbers of threads 
     //unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
     //unsigned int numThreads = 2;
-    // unsigned int numThreads = 4;
-     unsigned int numThreads = n;
+    unsigned int numThreads = 4;
+    // unsigned int numThreads = n;
     // ******************************************************************
 
 // First pass: Let's compute the parallel iterative FFT on rows:
