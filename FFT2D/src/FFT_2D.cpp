@@ -146,12 +146,13 @@ void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
 void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
    
    unsigned int numBits = static_cast<unsigned int>(log2(n));
-       
+    // Maximum number of threads
+    int max_num_threads = omp_get_max_threads();
     //******************************************************************
     //          Try with different numbers of threads 
     //unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
     //unsigned int numThreads = 2;
-    unsigned int numThreads = 4;
+    // unsigned int numThreads = 4;
     // unsigned int numThreads = n;
     // ******************************************************************
 
@@ -160,7 +161,8 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
         Vec row_vector = input_matrix.row(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(row_vector) firstprivate(n)
-        #pragma omp parallel for num_threads(numThreads) schedule(static)
+        omp_set_num_threads(max_num_threads);
+        #pragma omp parallel for schedule(static)
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
@@ -175,7 +177,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
             unsigned int m = 1U << s;
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m)); // Twiddle factor
         
-        #pragma omp parallel for num_threads(numThreads) schedule(static)
+        #pragma omp parallel for schedule(static)
             for (unsigned int k = 0; k < n; k += m) {
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {
@@ -197,7 +199,8 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
         Vec col_vector = input_matrix.col(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
         #pragma omp task shared(col_vector) firstprivate(n)
-        #pragma omp parallel for num_threads(numThreads) schedule(static)
+        omp_set_num_threads(max_num_threads);
+        #pragma omp parallel for schedule(static)
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
@@ -212,7 +215,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n){
             unsigned int m = 1U << s;
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m)); // Twiddle factor
         
-        #pragma omp parallel for num_threads(numThreads) schedule(static)
+        #pragma omp parallel for schedule(static)
             for (unsigned int k = 0; k < n; k += m) {
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {
