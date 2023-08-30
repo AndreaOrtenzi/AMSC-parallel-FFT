@@ -114,7 +114,6 @@ void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
     //Second pass: Apply FFT to each column
     for (unsigned int i = 0; i < n; ++i) {
         Vec col_vector = input_matrix.col(i);
-        unsigned int j = 0;
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
                 for (unsigned int k = 0; k < numBits; k++) {
@@ -273,7 +272,6 @@ void FFT_2D::iTransform() {
     // Second pass: apply inverse FFT on each column:
     for (unsigned int i = 0; i < n; ++i) {
         Vec col_vector = spatialValues.col(i);
-        unsigned int j = 0;
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
                 for (unsigned int k = 0; k < numBits; k++) {
