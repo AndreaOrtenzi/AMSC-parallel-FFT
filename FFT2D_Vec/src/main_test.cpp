@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
     #if TIME_IMPL
     using clock = std::chrono::steady_clock;
 	using unitOfTime = std::chrono::duration<double, std::micro>;
-    const std::string unitTimeStr = "us";
+    const std::string unitTimeStr = "\u03BCs";
 
     std::chrono::time_point<clock> begin;
     double total = 0.0;
