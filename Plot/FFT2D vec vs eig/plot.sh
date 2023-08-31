@@ -3,7 +3,7 @@
 # BEFORE RUNNING THIS SCRIPT COMPILE WITH SEQUENTIAL AND PARALLEL IMPLEMENTATIONs TRUE
 
 vecVecExePath="../../FFT2D_Vec/test2D.exe"
-eigenExePath=""
+eigenExePath="../../FFT2D/test2D.exe"
 
 # Max size
 maxSize=64

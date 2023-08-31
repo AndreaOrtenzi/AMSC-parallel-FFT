@@ -130,6 +130,20 @@ void load_input(Mat& input_matrix, std::string& filename)
     std::cout<<"Loading has been successful." <<std::endl;
 }
 
+void printInt(Mat vec, const std::string name){
+    std::cout << "Print " << name << std::endl;
+    if (vec.rows() > 5 || vec.cols() > 5) {
+        std::cout << "Too many elements" << std::endl;
+        return;
+    }
+    for (unsigned int i=0; i<vec.rows(); i++){
+        for (unsigned int j=0; j<vec.cols(); j++) {
+            const std::complex<double> val = vec(i, j);
+            std::cout << "(" << ROUND_TO_ZERO(val.real()) << ", " << ROUND_TO_ZERO(val.imag()) << ") ";
+        }
+        std::cout << std::endl;
+    }
+}
 
 
 int main(int argc, char *argv[]) {
@@ -154,7 +168,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     // create the matrix xSpace to convert with FFT:
-    const unsigned int pow = std::log2(ROW_LENGTH);
+    const unsigned int pow = std::log2(rowlength);
     Mat xSpace, xSpaceToCheck;
     Mat xFreq, correctXFreq;
     // Fill the matrix xSpace with random complex values:
@@ -163,61 +177,34 @@ int main(int argc, char *argv[]) {
     xFreq.resize(xSpace.rows(), xSpace.cols());
 
     #if CHECK_CORRECTNESS    
-    // run the recursive version
+    // run the O(n^2) version
     {
         unsigned int i = 0;
+        xFreq = xSpace;
         #if TIME_IMPL
-        for(i = 0; i < iterToTime; i++ ){            
-        #endif
-            
-        std::cout << "Space values:" << std::endl;
-        for (int j = 0; j < xSpace.rows(); ++j) 
-        {
-            for (int k = 0; k < xSpace.cols(); ++k) {
-                std::complex<double> value = xSpace(j, k);
-                std::cout << "\t(" << std::fixed << std::setprecision(3) << value.real() << ", " << value.imag() << ")";
-            }       
-        std::cout << std::endl;
-        }
-        #if TIME_IMPL
-            begin = clock::now();
-            DFT_2D(xSpace,xSpace.rows());
-        #else
-            DFT_2D(xFreq.data(),xFreq.size());
+        for(i = 0; i < iterToTime; i++ ){ 
+            printInt(xSpace, "space values DFT:");
+            begin = clock::now();          
         #endif
         
+        DFT_2D(xFreq,xFreq.rows());
+
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
             total += elapsed;
 
+            printInt(xFreq, "freq values DFT");
             
-            std::cout << "Frequency values:" << endl;
-            for (int j = 0; j < xSpace.rows(); ++j) 
-            {
-                for (int k = 0; k < xSpace.cols(); ++k) {
-                std::complex<double> value = xSpace(j, k);
-                std::cout << "\t(" << std::fixed << std::setprecision(3) << value.real() << ", " << value.imag() << ")";
-                }       
-            std::cout << std::endl;
-            }
-        #else
-            // print out the result to check if the recursive version is correct
-            std::cout << "Frequency values:" << endl;
-            for (std::vector<complex<double>>::iterator it = xFreq.begin(); it != xFreq.end(); ++it)
-                std::cout << "\t" << *it;
-            std::cout << endl;
-        #endif
-        #if TIME_IMPL
-            // create a new test matrix every iteration
+            // crate a new test matrix every iteration
             fill_input_matrix(xSpace, pow, i+1);
-        }    
-        std::cout << "DFT2D took on average: " << total/iterToTime << unitTimeStr << endl;
+            xFreq = xSpace;
+        }
+        std::cout << "DFT2D took on average: " << total/iterToTime << unitTimeStr << std::endl;
         #endif
-    }    
+    } 
     #endif
 
     // run my implementations:
-    Mat empty_matrix(rowlength, rowlength);
 
     // sequential implementation:  
     #if SEQ_IMPL
@@ -225,13 +212,14 @@ int main(int argc, char *argv[]) {
         const string implementationName = "Sequential FFT 2D implementation";
         std::cout << "----------------"<< implementationName <<"----------------" << endl;
 
-        FFT_2D fft2D(xSpace, xFreq);
-
         unsigned int i = 0;
         #if TIME_IMPL
         total = 0.0;
         for( i = 0; i < iterToTime; i++ ){
+            FFT_2D fft2D(xSpace, xFreq);
             begin = clock::now();
+        #else
+            FFT_2D fft2D(xSpace, xFreq);
         #endif
         
         fft2D.transform_seq();
@@ -243,13 +231,14 @@ int main(int argc, char *argv[]) {
         #endif
 
         #if CHECK_CORRECTNESS
-            DFT_2D(xSpace,correctXFreq);
-            checkCorrectness(implementationName, correctXFreq, xFreq);
+            xFreq = xSpace;
+            DFT_2D(xFreq ,xFreq.rows());
+            checkCorrectness(implementationName, xFreq, fft2D.getFrequencyValues());
 
             std::cout << "Check correctness of the iFFT: " << std::endl;
 
             fft2D.iTransform();
-            checkCorrectness("iFFT", fft2D.getSpatialValues(), xSpaceToCheck);
+            checkCorrectness("iFFT",xSpace, fft2D.getSpatialValues());
         #endif
 
         #if TIME_IMPL
@@ -264,16 +253,17 @@ int main(int argc, char *argv[]) {
     //parallel implementation: 
     #if PAR_IMPL
     {
-        const string implementationName = "Parallel FFT 2D implementation with " + std::str(numThreads) + " threads";
+        const string implementationName = "Parallel FFT 2D implementation with " + std::to_string(numThreads) + " threads";
         std::cout << "----------------"<< implementationName <<"----------------" << endl;
-
-        FFT_2D fft2D(xSpace, xFreq);
 
         unsigned int i = 0;
         #if TIME_IMPL
         total = 0.0;
         for( i = 0; i < iterToTime; i++ ){
+            FFT_2D fft2D(xSpace, xFreq);
             begin = clock::now();
+        #else 
+            FFT_2D fft2D(xSpace, xFreq);
         #endif
 
         fft2D.transform_par(numThreads);
@@ -285,12 +275,13 @@ int main(int argc, char *argv[]) {
         #endif
 
         #if CHECK_CORRECTNESS
-            DFT_2D(xSpace,correctXFreq);
-            checkCorrectness(implementationName, correctXFreq, xFreq);
+            xFreq = xSpace;
+            DFT_2D(xFreq,xFreq.rows());
+            checkCorrectness(implementationName, xFreq, fft2D.getFrequencyValues());
             
             std::cout << "Check correctness of the inverse: " << std::endl;
             fft2D.iTransform();
-            checkCorrectness("iFFT", fft2D.getSpatialValues(), xSpaceToCheck);
+            checkCorrectness("iFFT",xSpace, fft2D.getSpatialValues());
         #endif
 
         #if TIME_IMPL

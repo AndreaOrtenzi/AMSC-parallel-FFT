@@ -63,7 +63,7 @@ void FFT_2D::transform_par(const unsigned int numThreads){
     // Resize frequency matrix: 
     frequencyValues.resize(n, n);
 
-    std::cout << "***Start Parallel Iterative Implementation***" << std::endl;
+    //std::cout << "***Start Parallel Iterative Implementation***" << std::endl;
     frequencyValues = spatialValues;
     iterative_parallel(frequencyValues,frequencyValues.rows(), numThreads);
 }
@@ -72,7 +72,7 @@ void FFT_2D::transform_seq(){
     // Resize frequency matrix: 
     frequencyValues.resize(n, n);
 
-    std::cout << "***Start Sequential Iterative Implementation***" << std::endl;
+    //std::cout << "***Start Sequential Iterative Implementation***" << std::endl;
     frequencyValues = spatialValues;
     iterative_sequential(frequencyValues,frequencyValues.rows());
 }
@@ -157,12 +157,11 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
     // ******************************************************************
 
 // First pass: Let's compute the parallel iterative FFT on rows:
+#pragma omp parallel for num_threads(numThreads) schedule(static)
     for(unsigned int i=0; i<n; i++){
         Vec row_vector = input_matrix.row(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
-        #pragma omp task shared(row_vector) firstprivate(n)
-        omp_set_num_threads(numThreads);
-        #pragma omp parallel for schedule(static)
+        //omp_set_num_threads(numThreads);
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
@@ -176,8 +175,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
         for (unsigned int s = 1; s <= numBits; s++) {
             unsigned int m = 1U << s;
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m)); // Twiddle factor
-        
-        #pragma omp parallel for schedule(static)
+
             for (unsigned int k = 0; k < n; k += m) {
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {
@@ -195,12 +193,11 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
     
 
     // Second pass: let's compute the parallel iterative FFT on columns:
+#pragma omp parallel for num_threads(numThreads) schedule(static)
     for(unsigned int i=0; i<n; i++){
         Vec col_vector = input_matrix.col(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
-        #pragma omp task shared(col_vector) firstprivate(n)
-        omp_set_num_threads(numThreads);
-        #pragma omp parallel for schedule(static)
+        //omp_set_num_threads(numThreads);
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
@@ -214,8 +211,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
         for (unsigned int s = 1; s <= numBits; s++) {
             unsigned int m = 1U << s;
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m)); // Twiddle factor
-        
-        #pragma omp parallel for schedule(static)
+
             for (unsigned int k = 0; k < n; k += m) {
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {

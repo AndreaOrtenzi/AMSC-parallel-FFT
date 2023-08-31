@@ -23,7 +23,7 @@
 #endif
 
 #ifndef SEQ_IMPL
-#define SEQ_IMPL false
+#define SEQ_IMPL true
 #endif
 
 #ifndef PAR_IMPL

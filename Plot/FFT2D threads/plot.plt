@@ -5,7 +5,7 @@ set output "./plot.png"
 
 set title "FFT2D num threads"
 set xlabel "Matrix width"
-set ylabel "us"
+set ylabel "μs"
 set grid
 
 # Define the thread counts and line styles

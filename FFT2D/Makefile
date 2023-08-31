@@ -18,7 +18,6 @@ obj:
 clear:
 	rm -rf obj
 	rm -f test2D.exe
-	rm -f libourparallelFFT.a
 
 .PHONY: all clear
 
