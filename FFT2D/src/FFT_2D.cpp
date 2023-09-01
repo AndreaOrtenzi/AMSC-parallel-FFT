@@ -160,8 +160,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
 #pragma omp parallel for num_threads(numThreads)
     for(unsigned int i=0; i<n; i++){
         Vec row_vector = input_matrix.row(i);
-        // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
-        //omp_set_num_threads(numThreads);
+
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
@@ -196,8 +195,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
 #pragma omp parallel for num_threads(numThreads) 
     for(unsigned int i=0; i<n; i++){
         Vec col_vector = input_matrix.col(i);
-        // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
-        //omp_set_num_threads(numThreads);
+
         for (unsigned int l = 0; l < n; l++) {
             unsigned int j = 0;
             for (unsigned int k = 0; k < numBits; k++) {
