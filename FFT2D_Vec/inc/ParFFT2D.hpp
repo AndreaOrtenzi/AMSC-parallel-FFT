@@ -3,6 +3,8 @@
 #include <omp.h>
 #include <vector>
 
+#include <unordered_map>
+
 class ParFFT2D  {
 public:
   
