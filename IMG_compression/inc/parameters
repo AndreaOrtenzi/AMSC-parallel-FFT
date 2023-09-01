@@ -1,0 +1,6 @@
+#ifndef MCU_SIZE
+#define MCU_SIZE 8 // power of 2
+#endif
+#ifndef NUM_CHANNELS
+#define NUM_CHANNELS 3
+#endif
