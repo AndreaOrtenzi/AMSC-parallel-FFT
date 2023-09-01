@@ -157,7 +157,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
     // ******************************************************************
 
 // First pass: Let's compute the parallel iterative FFT on rows:
-#pragma omp parallel for num_threads(numThreads) schedule(static)
+#pragma omp parallel for num_threads(numThreads)
     for(unsigned int i=0; i<n; i++){
         Vec row_vector = input_matrix.row(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
@@ -193,7 +193,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
     
 
     // Second pass: let's compute the parallel iterative FFT on columns:
-#pragma omp parallel for num_threads(numThreads) schedule(static)
+#pragma omp parallel for num_threads(numThreads) 
     for(unsigned int i=0; i<n; i++){
         Vec col_vector = input_matrix.col(i);
         // Create region of parallel tasks in order to do bit reverse for input vector x, n is shared among all the threads of the region:
