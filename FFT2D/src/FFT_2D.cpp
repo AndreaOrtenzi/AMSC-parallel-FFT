@@ -146,18 +146,9 @@ void FFT_2D::iterative_sequential(Mat& input_matrix, const unsigned int n){
 void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const unsigned int numThreads){
    
    unsigned int numBits = static_cast<unsigned int>(log2(n));
-    // Maximum number of threads
-    // int numThreads = omp_get_max_threads();
-    //******************************************************************
-    //          Try with different numbers of threads 
-    //unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
-    //unsigned int numThreads = 2;
-    // unsigned int numThreads = 4;
-    // unsigned int numThreads = n;
-    // ******************************************************************
 
-// First pass: Let's compute the parallel iterative FFT on rows:
-#pragma omp parallel for num_threads(numThreads)
+    // First pass: Let's compute the parallel iterative FFT on rows:
+    #pragma omp parallel for num_threads(numThreads)
     for(unsigned int i=0; i<n; i++){
         Vec row_vector = input_matrix.row(i);
 
@@ -192,7 +183,7 @@ void FFT_2D::iterative_parallel(Mat& input_matrix, const unsigned int n, const u
     
 
     // Second pass: let's compute the parallel iterative FFT on columns:
-#pragma omp parallel for num_threads(numThreads) 
+    #pragma omp parallel for num_threads(numThreads) 
     for(unsigned int i=0; i<n; i++){
         Vec col_vector = input_matrix.col(i);
 
