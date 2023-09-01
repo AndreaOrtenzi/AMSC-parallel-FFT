@@ -121,7 +121,9 @@ int main(int argc, char *argv[]) {
     // Set testing parameters:
     const unsigned int rowlength = cmdLine.follow(ROW_LENGTH, "-N");
     const unsigned int iterToTime = cmdLine.follow(NUM_ITER_TO_TIME, "-iTT");
-    const unsigned int numThreads = cmdLine.follow(NUM_THREADS == 0 ? omp_get_max_threads() : NUM_THREADS, "-nTH");
+    const unsigned int numThreads = cmdLine.follow(NUM_THREADS == 0 ? \
+        omp_get_max_threads() > rowlength ? rowlength : omp_get_max_threads() \
+        : NUM_THREADS, "-nTH");
 
     std::cout << "---------------- FFT2D on matrices "<< rowlength << "x" << rowlength <<" ----------------" << std::endl;
     std::cout << "--------------------------------------------------------------------------------" << std::endl << std::endl;
