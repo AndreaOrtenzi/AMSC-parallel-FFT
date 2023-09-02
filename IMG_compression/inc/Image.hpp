@@ -1,28 +1,30 @@
 #include <string.h>
 #include <vector>
+#include <string>
 #include "MinimumCodedUnit.hpp"
-
-#include "../../lib/stb_image.h"
 
 class Image {
 public:
-    // open file and split pixels into minimum coded units
     Image(std::string inputFilePath, std::string outputFilePath, bool isInputCompressed = false);
 
     void trasform();
     void iTrasform();
 
-    void writeCompressed();
-    void writeImage();
+    // usa stb_image_write:
+    void writeCompressed(); 
+    void writeImage(); // scrivere il file per l'immagine 
     
 
 private:
-    void readCompressed();
-    void readImage();
+    std::string inputFilePath;
+    std::string outputFilePath;
+    void readCompressed(); // legge l'immagine già compressa
+    void readImage(); // legge l'immagine da comprimere
 
 
-    void divideIntoBlocks(const Mat& frame, std::vector<Mat>& blocks);
+    //void divideIntoBlocks(const Mat& frame, std::vector<Mat>& blocks); --> in readImage l'ho fatto
 
+    // Image's MCUs vector
     std::vector<MinimumCodedUnit> imageMCUs;
 
 
