@@ -3,6 +3,17 @@
 #include "../inc/parameters"
 #include "../inc/Image.hpp"
 
+// Eigen library
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/Core>
+#include <unsupported/Eigen/SparseExtra> 
+
+using namespace std;
+using namespace Eigen;
+using Mat = Eigen::MatrixXcd;
+using SpMat = Eigen::SparseMatrix<double>;
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../lib/stb_image.h"
 
@@ -72,6 +83,7 @@ void Image::trasform(){
 
 //Inverse Trasform every MCU in the vector imageMCUs:
 void Image::iTrasform(){
+    
     // At the same way for trasform method, define a lambda function:
     auto apply_iFFT2D  = [](MinimumCodedUnit &mcu) {
         mcu.iTrasform(); // call to iTrasform method of MinimumCodeUnit
@@ -81,10 +93,22 @@ void Image::iTrasform(){
     std::for_each(imageMCUs.begin(), imageMCUs.end(), apply_iFFT2D);
 
 }
-
+// 
 void Image::readCompressed(){
-    // leggere la compressa: 
 
+    int width, height, numChannels = NUM_CHANNELS;
+    unsigned char *imageData = stbi_load(inputFilePath.c_str(), &width, &height, &numChannels, 0);
+
+    if (!imageData) {
+        std::cerr << "Error occurred during the reading of compressed image." << std::endl;
+        return;
+    }
+
+    /* ------------------------------------------------------------------
+    ---------------------implementa la lettura qua ---------------------------
+    ---------------------------------------------------------------------*/
+    // Free the memory:
+    stbi_image_free(imageData);
 }
 
 // scrivere il file per l'immagine compressa (saveMarket di Eigen per tutte le matrici e poi ricomponi l'immagine)--> da fare in writeCompressedOnFile
