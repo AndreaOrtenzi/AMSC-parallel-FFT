@@ -19,46 +19,6 @@ const Mat& FFT_2D::getFrequencyValues() const {
     return frequencyValues;
 }
 
-//Same code for SequentialFFT::iTransform(const std::vector<std::complex<real>>& fValues), but I need the version 
-// with Eigen vector for FFT2D::inverse_transform():
-void FFT_2D::inv_transform_1D(Vec& x) {
-    
-    unsigned int n = x.size();
-    unsigned int numBits = static_cast<unsigned int>(log2(n));
-
-        for (unsigned int l = 0; l < n; l++) {
-            unsigned int j = 0;
-            for (unsigned int k = 0; k < numBits; k++) {
-                j = (j << 1) | ((l >> k) & 1U);
-            }
-            if (j > l) {
-                std::swap(x[l], x[j]);
-            }
-        }
-
-    for (unsigned int s = 1; s <= numBits; s++) {
-        unsigned int m = 1U << s; 
-        std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
-        for (unsigned int k = 0; k < n; k += m) {
-            std::complex<double> w = 1.0;
-            for (unsigned int j = 0; j < m / 2; j++) {
-                std::complex<double> t = w * x[k + j + m / 2];
-                std::complex<double> u = x[k + j];
-                x[k + j] = u + t;
-                x[k + j + m / 2] = u - t;
-                w *= wm;
-            }
-        }
-    }
-
-    // Real coefficient 1/N :
-    double N_inv = 1.0 / static_cast<double>(n);
-
-    for (unsigned int i = 0; i < n; i++) {
-        x[i] *=  N_inv;
-    }
-}
-
 void FFT_2D::transform_par(const unsigned int numThreads){
     // Resize frequency matrix: 
     frequencyValues.resize(n, n);

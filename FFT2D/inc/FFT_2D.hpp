@@ -26,6 +26,5 @@ private:
     void iterative_sequential(Mat& input_matrix, const unsigned int n);
 
     void iterative_parallel(Mat& input_matrix, const unsigned int n, const unsigned int numThreads);
-    void inv_transform_1D(Vec& x);
 
 };
