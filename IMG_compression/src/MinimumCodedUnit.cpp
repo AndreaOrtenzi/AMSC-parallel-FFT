@@ -31,12 +31,16 @@ MinimumCodedUnit::MinimumCodedUnit(unsigned char* initialSquare, const unsigned 
         }
     }
     
+    // Initialize sparse matrices normFreqSparse:
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
+        normFreqSparse[channel].resize(MCU_SIZE, MCU_SIZE);
+    }
 
 
 }
 
 
-void MinimumCodedUnit::trasform(){
+void MinimumCodedUnit::transform(){
 
     // subtract 128
     for (unsigned int w = 0; w < NUM_CHANNELS; ++w)
@@ -47,21 +51,109 @@ void MinimumCodedUnit::trasform(){
     // Apply FFT2D and quantizate the norm by Q
     FFT2DwithQuantization();
 
-    // Fill eigen matrices ?
+    // Fill Eigen matrices: done inside FFT2DwithQuantization
 
 }
-
 constexpr unsigned numberOfBits(unsigned x) {
     return x < 2 ? x : 1+numberOfBits(x >> 1);
 }
 
-void MinimumCodedUnit::iTrasform(){
-    // 2. Multiply elementwise by Q.
+void MinimumCodedUnit::iTransform(){
 
-    // 3. Take the 2-dimensional inverse FFT.
+    // Step 1: multiply element wise per Q matrix: 
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++){
+        normFreqSparse[channel] = normFreqSparse[channel].cwiseProduct(Q);
+    }
 
-    // 4. Round to the nearest integer, and add 128 so that the entries are between 0 and 255
+    // Step 2: Take the 2-dimensional inverse FFT:
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++){
+        // Num bits:
+        unsigned int numBits = static_cast<unsigned int>(log2(MCU_SIZE));
+        // Coefficient necessary for inverse FFT:
+        double N_inv = 1.0 / static_cast<double>(MCU_SIZE);
+        //First pass: Apply FFT to each row:
+        for (unsigned int i = 0; i < MCU_SIZE; ++i) {
+            Eigen::Matrix<int, 1, MCU_SIZE> row_vector = normFreqSparse[channel].row(i);
+            for (unsigned int l = 0; l < MCU_SIZE; l++) {
+                unsigned int j = 0;
+                for (unsigned int k = 0; k < numBits; k++) {
+                    j = (j << 1) | ((l >> k) & 1U);
+                }
+                if (j > l) {
+                    std::swap(row_vector[l], row_vector[j]);
+                }
+            }
 
+            for (unsigned int s = 1; s <= numBits; s++) {
+                unsigned int m = 1U << s; 
+                std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
+                for (unsigned int k = 0; k < MCU_SIZE; k += m) {
+                    std::complex<double> w = 1.0;
+                    for (unsigned int j = 0; j < m / 2; j++) {
+                        std::complex<double> t = w * row_vector[k + j + m / 2];
+                        std::complex<double> u = row_vector[k + j];
+                        row_vector[k + j] = u + t;
+                        row_vector[k + j + m / 2] = u - t;
+                        w *= wm;
+                    }
+                }
+            }
+            
+            normFreqSparse[channel].row(i) = row_vector;
+        }
+
+        //Second pass: Apply FFT to each column
+        for (unsigned int i = 0; i < n; ++i) {
+            Eigen::Matrix<int, 1, MCU_SIZE> col_vector = normFreqSparse.col(i);
+            for (unsigned int l = 0; l < MCU_SIZE; l++) {
+                unsigned int j = 0;
+                    for (unsigned int k = 0; k < numBits; k++) {
+                        j = (j << 1) | ((l >> k) & 1U);
+                    }
+                    if (j > l) {
+                        std::swap(col_vector[l], col_vector[j]);
+                    }
+                }
+            for (unsigned int s = 1; s <= numBits; s++) {
+                unsigned int m = 1U << s; 
+                std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
+                for (unsigned int k = 0; k < MCU_SIZE; k += m) {
+                    std::complex<double> w = 1.0;
+                    for (unsigned int j = 0; j < m / 2; j++) {
+                        std::complex<double> t = w * col_vector[k + j + m / 2];
+                        std::complex<double> u = col_vector[k + j];
+                        col_vector[k + j] = u + t;
+                        col_vector[k + j + m / 2] = u - t;
+                        w *= wm;
+                    }
+                }
+            }
+            
+            normFreqSparse[channel].col(i) = col_vector;
+        }
+
+        // Factorize per 1/(MCU_SIZE * MCU_SIZE):
+        for (unsigned int i = 0; i < MCU_SIZE; i++){
+            for(unsigned int j = 0; j < MCU_SIZE; j++){
+                normFreqSparse[channel].coeff(i, j) *= N_inv * N_inv;
+            }
+        }
+    }
+
+    // Step 3: Round to the nearest integer, and add 128 so that the entries are between 0 and 255:
+    for(channel=0; channel<NUM_CHANNELS; channel++){
+        for(unsigned int i = 0; i < MCU_SIZE; i++){
+            for(unsigned int j = 0; j < MCU_SIZE; j++){
+                // Round to the nearest integer:
+                int rounded_value = std::round(normFreqSparse[channel].coeff(i, j));
+                // Add 128 and allocate the value to the element of the block:
+                rounded_value += 128;
+                // Set the real part of the element to the rounded value:
+                normFreqSparse[channel].coeff(i, j).real() = rounded_value;
+                normFreqSparse[channel].coeff(i, j).imag() = 0; 
+            }
+        }
+    }
 }
 
 void MinimumCodedUnit::writeCompressedOnFile(std::ofstream& writeFilePointer){
@@ -187,12 +279,12 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
                     for (unsigned int j = 0; j < m / 2; j++) {
                         std::complex<double> t = w * col_vector[k + j + m / 2];
                         std::complex<double> u = col_vector[k + j];
-                        
-                        phaseFreq[channel][k + j][i] = std::arg(u + t);
-                        normFreq[channel][k + j][i] = static_cast<int>(std::abs(u + t) / Q[k + j][i] + 0.5);
 
-                        phaseFreq[channel][k + j + m / 2][i] = std::arg(u - t);
-                        normFreq[channel][k + j + m / 2][i] = static_cast<int>(std::abs(u - t) / Q[k + j + m / 2][i] + 0.5);
+                        normFreqSparse[channel].coeffRef(k + j, i) = static_cast<int>(std::abs(u + t) / Q[k + j][i] + 0.5);
+                        phaseFreqDense[channel][k + j][i] = std::arg(u + t);
+
+                        normFreqSparse[channel].coeffRef(k + j + m / 2, i) = static_cast<int>(std::abs(u - t) / Q[k + j + m / 2][i] + 0.5);
+                        phaseFreqDense[channel][k + j + m / 2][i] = std::arg(u - t);
                         
                         w *= wm;
                     }
