@@ -6,8 +6,6 @@
 #include <cmath>
 #include <chrono>
 
-//template void FFT_2D::iterative_sequential(std::vector<std::vector<unsigned char>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix);
-
 using namespace std; 
 using namespace std::chrono;
 
