@@ -12,8 +12,8 @@ public:
     MinimumCodedUnit(unsigned char* initialSquare, const unsigned int width, const unsigned int height, const unsigned int rowIdx, const unsigned int colIdx);
 
     // here FFT, Subtract128 and quantization
-    void trasform();
-    void iTrasform();
+    void transform();
+    void iTransform();
 
     void writeCompressedOnFile(std::ofstream& writeFilePointer);
 
