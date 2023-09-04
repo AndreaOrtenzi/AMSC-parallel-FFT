@@ -1,5 +1,6 @@
 #include <cmath>
-#include <algorithm> // per std::for_each
+#include <algorithm> // for usage of std::for_each
+#include <filesystem> // for create directory compressed_images
 #include "../inc/parameters"
 #include "../inc/Image.hpp"
 
@@ -39,8 +40,8 @@ Image::Image(std::string inputFilePath, std::string outputFilePath, bool isInput
 }
 
 void Image::readImage(){
-    int width, height, numChannels = NUM_CHANNELS;
-    unsigned char *imageData = stbi_load(inputFilePath.c_str(), &width, &height, &numChannels, 0);
+    constexpr int numChannels = NUM_CHANNELS;
+    unsigned char *imageData = stbi_load(inputFilePath.c_str(), &imgWidth, &imgHeight, &numChannels, 0);
 
     if (!imageData) {
         std::cerr << "Error occurred during the image reading." << std::endl;
@@ -48,8 +49,8 @@ void Image::readImage(){
     }
 
     // Calculate number of MCUs in width and in height:
-    unsigned int numMCUsWidth = (width + MCU_SIZE - 1) / MCU_SIZE;
-    unsigned int numMCUsHeight = (height + MCU_SIZE - 1) / MCU_SIZE;
+    unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
+    unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
 
     // Create MCUs from image's pixel:
     for (unsigned int row = 0; row < numMCUsHeight; row++) {
@@ -58,7 +59,7 @@ void Image::readImage(){
             unsigned int startY = row * MCU_SIZE;
 
             // Let's create a MCU from pixel in the specified area:
-            MinimumCodedUnit mcu(&imageData[(startY * width + startX) * numChannels], width, height, startY, startX);
+            MinimumCodedUnit mcu(&imageData[(startY * imgWidth + startX) * numChannels], imgWidth, imgHeight, startY, startX);
 
             // Add the new unit to MCUs' vector of image:
             imageMCUs.push_back(mcu);
@@ -96,13 +97,13 @@ void Image::iTrasform(){
 // 
 void Image::readCompressed(){
 
-    int width, height, numChannels = NUM_CHANNELS;
-    unsigned char *imageData = stbi_load(inputFilePath.c_str(), &width, &height, &numChannels, 0);
+    // int width, height, numChannels = NUM_CHANNELS;
+    // unsigned char *imageData = stbi_load(inputFilePath.c_str(), &width, &height, &numChannels, 0);
 
-    if (!imageData) {
-        std::cerr << "Error occurred during the reading of compressed image." << std::endl;
-        return;
-    }
+    // if (!imageData) {
+    //     std::cerr << "Error occurred during the reading of compressed image." << std::endl;
+    //     return;
+    // }
 
     /* ------------------------------------------------------------------
     ---------------------implementa la lettura qua ---------------------------
@@ -111,25 +112,48 @@ void Image::readCompressed(){
     stbi_image_free(imageData);
 }
 
-// scrivere il file per l'immagine compressa (saveMarket di Eigen per tutte le matrici e poi ricomponi l'immagine)--> da fare in writeCompressedOnFile
 void Image::writeCompressed() {
-    // Open file binary to write:
-    std::ofstream outputFile(outputFilePath.c_str(), std::ios::binary);
 
-    if (!outputFile.is_open()) {
-        std::cerr << "Error opening output file." << std::endl;
-        return;
+    std::filesystem::path outputPath = "../compressed_images";
+
+    // If directory doesn't exist, create it: 
+    if (!std::filesystem::exists(outputPath)) {
+        std::filesystem::create_directory(outputPath);
     }
+    
+    for ( unsigned int i= 0; i< imageMCUs.size(); ++i)
+        imageMCUs[i].writeCompressedOnFile(outputPath, i);
 
-    // For each MCU in the vector: 
-    for (const MinimumCodedUnit &mcu : imageMCUs) {
-        // Call to writeCompressedOnFile method passing the file pointer:
-        mcu.writeCompressedOnFile(outputFile);
-    }
-
-    // Close the file:
-    outputFile.close();
 }
+
+void Image::writeImage(){
+
+    // Create a byte array for the final image:
+    std::vector<unsigned char> imageBuffer(imgWidth * imgHeight * NUM_CHANNELS);
+
+    // Converts the restored value arrays to a byte array for the image:
+    // for (unsigned int mcuRow = 0; mcuRow < imgHeight / MCU_SIZE; mcuRow++) {
+    //     for (unsigned int mcuCol = 0; mcuCol < imgWidth / MCU_SIZE; mcuCol++) {
+            
+    unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
+    unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
+
+    for (unsigned int row = 0; row < numMCUsHeight; row++) {
+        for (unsigned int col = 0; col < numMCUsWidth; col++) {
+            unsigned int startX = col * MCU_SIZE;
+            unsigned int startY = row * MCU_SIZE;
+            unsigned int mcuIdx = row * (imgWidth / MCU_SIZE) + col;
+            MinimumCodedUnit& mcu = imageMCUs[mcuIdx];
+
+            mcu.writeImage(&imageData[(startY * imgWidth + startX) * NUM_CHANNELS]);
+
+        }
+    }
+
+    // stb_image_write to write finale JPEG image:
+    stbi_write_jpg(outputFileName.c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
+}
+
 
 
 
