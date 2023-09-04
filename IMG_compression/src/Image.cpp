@@ -1,32 +1,21 @@
-#include <cmath>
-#include <algorithm> // for usage of std::for_each
-#include <filesystem> // for create directory compressed_images
-#include "../inc/parameters"
 #include "../inc/Image.hpp"
 
-// Eigen library
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/Core>
-#include <unsupported/Eigen/SparseExtra> 
-
-using namespace std;
-using namespace Eigen;
-using Mat = Eigen::MatrixXcd;
-using SpMat = Eigen::SparseMatrix<double>;
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "../../lib/stb_image.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../../lib/stb_image_write.h"
-
-
-Image::Image(std::string inputFilePath, std::string outputFilePath, bool isInputCompressed)
-    : inputFilePath(inputFilePath)
+/*
+* paths to folder end with the / character
+* jpegImgsFolderPath: is the path to the folder that contains the jpeg images (initial and restored)
+* encodedFolderPath: is the path to the folder where will be created a folder with all the encoded files
+* imgName: image name corresponds to the file name without extension and the folder name in encodedFolderPath (will be created)
+* isInputCompressed: true if it has to get the pixel informations from encoded files, false from jpeg file
+*/
+Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, std::string imgName_, bool isInputCompressed = false)
+    : jpegImgsFolderPath(jpegImgsFolderPath_)
+    , encodedFolderPath(encodedFolderPath_)
+    , imgName(imgName_)
+    , hasFreqValues(isInputCompressed)
+    , hasPixelsValues(!isInputCompressed);
 {
-    /*------------ inizializzazioni di classe qua---------------------------
-    ------------------------------------------------------------------------ */ 
+    // TODO: Check if folders and files exist
+    // std::filesystem::exists()
 
     // Call to the right function:
     if (isInputCompressed) {
@@ -34,9 +23,6 @@ Image::Image(std::string inputFilePath, std::string outputFilePath, bool isInput
     } else {
         readImage();
     }
-
-    /*------------fare altre inizializzazioni di classe qua-----------------
-    ------------------------------------------------------------------------ */ 
 }
 
 void Image::readImage(){
@@ -45,7 +31,7 @@ void Image::readImage(){
 
     if (!imageData) {
         std::cerr << "Error occurred during the image reading." << std::endl;
-        return;
+        throw 1;
     }
 
     // Calculate number of MCUs in width and in height:
@@ -59,7 +45,8 @@ void Image::readImage(){
             unsigned int startY = row * MCU_SIZE;
 
             // Let's create a MCU from pixel in the specified area:
-            MinimumCodedUnit mcu(&imageData[(startY * imgWidth + startX) * numChannels], imgWidth, imgHeight, startY, startX);
+            MinimumCodedUnit mcu(imgWidth, imgHeight, startY, startX);
+            mcu.readImage(&imageData[(startY * imgWidth + startX) * numChannels]);
 
             // Add the new unit to MCUs' vector of image:
             imageMCUs.push_back(mcu);
@@ -68,10 +55,17 @@ void Image::readImage(){
 
     // Free the memory used for image: 
     stbi_image_free(imageData);
+
+    hasPixelsValues = true;
 }
 
 // Trasform every MCU in the vector imageMCUs: 
 void Image::trasform(){
+
+    if (!hasPixelsValues){
+        std::cerr << "There are not pixels values here!" std::endl;
+        throw 1;
+    }
 
     // Define a lambda function to apply FFT2D for each MCU: [] --> captures nothing
     auto apply_FFT2D = [](MinimumCodedUnit &mcu) {
@@ -80,10 +74,17 @@ void Image::trasform(){
 
     // Use of std::for_each to apply lambda function to every MCU in the vector:
     std::for_each(imageMCUs.begin(), imageMCUs.end(), apply_FFT2D);
+
+    hasFreqValues = true;
 }
 
 //Inverse Trasform every MCU in the vector imageMCUs:
 void Image::iTrasform(){
+
+    if (!hasFreqValues){
+        std::cerr << "There are not frequency values here!" std::endl;
+        throw 2;
+    }
     
     // At the same way for trasform method, define a lambda function:
     auto apply_iFFT2D  = [](MinimumCodedUnit &mcu) {
@@ -93,40 +94,44 @@ void Image::iTrasform(){
     // For each MCU apply the lambda function just definied: 
     std::for_each(imageMCUs.begin(), imageMCUs.end(), apply_iFFT2D);
 
+    hasPixelsValues = true;
 }
 // 
 void Image::readCompressed(){
 
-    // int width, height, numChannels = NUM_CHANNELS;
-    // unsigned char *imageData = stbi_load(inputFilePath.c_str(), &width, &height, &numChannels, 0);
+    std::filesystem::path outputFolderPath = encodedFolderPath + imgName;
 
-    // if (!imageData) {
-    //     std::cerr << "Error occurred during the reading of compressed image." << std::endl;
-    //     return;
-    // }
+    for ( unsigned int i= 0; i< imageMCUs.size(); ++i)
+        imageMCUs[i].readCompressedFromFile(outputFolderPath, i);
 
-    /* ------------------------------------------------------------------
-    ---------------------implementa la lettura qua ---------------------------
-    ---------------------------------------------------------------------*/
-    // Free the memory:
-    stbi_image_free(imageData);
+    hasFreqValues = true;
 }
 
 void Image::writeCompressed() {
 
-    std::filesystem::path outputPath = "../compressed_images";
+    if (!hasFreqValues){
+        std::cerr << "There are not frequency values to write here!" std::endl;
+        throw 2;
+    }
+
+    std::filesystem::path outputFolderPath = encodedFolderPath + imgName;
 
     // If directory doesn't exist, create it: 
-    if (!std::filesystem::exists(outputPath)) {
-        std::filesystem::create_directory(outputPath);
+    if (!std::filesystem::exists(outputFolderPath)) {
+        std::filesystem::create_directory(outputFolderPath);
     }
     
     for ( unsigned int i= 0; i< imageMCUs.size(); ++i)
-        imageMCUs[i].writeCompressedOnFile(outputPath, i);
+        imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
 
 }
 
 void Image::writeImage(){
+
+    if (!hasPixelsValues){
+        std::cerr << "There are not pixel values to write here!" std::endl;
+        throw 2;
+    }
 
     // Create a byte array for the final image:
     std::vector<unsigned char> imageBuffer(imgWidth * imgHeight * NUM_CHANNELS);

@@ -18,6 +18,11 @@ int main(){
     // }
     MinimumCodedUnit img;
     img.transform();
+
+    img.writeCompressedOnFile("./imgs/compressed/test",0);
+
     img.iTransform();
+
+
     return 0;
 }

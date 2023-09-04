@@ -1,23 +1,8 @@
 #include "../inc/MinimumCodedUnit.hpp"
-
-MinimumCodedUnit::MinimumCodedUnit(unsigned char* initialSquare, const unsigned int width, const unsigned int height, const unsigned int rowIdx, const unsigned int colIdx)
-    : dataWidth( width-colIdx < MCU_SIZE ? width-colIdx : MCU_SIZE )
-    , dataHeight( height-rowIdx < MCU_SIZE ? height-rowIdx : MCU_SIZE )
-    , imgWidth(width)
-    , imgHeight(height) {
     
-    // Q_eig << 16, 11, 10, 16, 24, 40, 51, 61,
-    //           12, 12, 14, 19, 26, 58, 60, 55,
-    //           14, 13, 16, 24, 40, 57, 69, 56,
-    //           14, 17, 22, 29, 51, 87, 80, 62,
-    //           18, 22, 37, 56, 68, 109, 103, 77,
-    //           24, 35, 55, 64, 81, 104, 113, 92,
-    //           49, 64, 78, 87, 103, 121, 120, 101,
-    //           72, 92, 95, 98, 112, 100, 103, 99;
 
-
-    double pow_MCU_SIZE = log2(MCU_SIZE);
-
+void MinimumCodedUnit::readImage(unsigned char* bufferPointer){
+    
     // read data and save them in mcuValues matrix
     for (unsigned int r = 0; r < dataHeight; ++r) {
 
@@ -25,7 +10,7 @@ MinimumCodedUnit::MinimumCodedUnit(unsigned char* initialSquare, const unsigned 
             
             // it should be unrolled
             for (unsigned int j = 0; j < NUM_CHANNELS; ++j){
-                mcuValues[j][r][c] = initialSquare[width*r*NUM_CHANNELS + c*NUM_CHANNELS + j];
+                mcuValues[j][r][c] = initialSquare[imgWidth*r*NUM_CHANNELS + c*NUM_CHANNELS + j];
             }
         }
         // add padding if needed
@@ -40,39 +25,45 @@ MinimumCodedUnit::MinimumCodedUnit(unsigned char* initialSquare, const unsigned 
             std::copy(&mcuValues[j][r-1][0],&mcuValues[j][r-1][MCU_SIZE],&mcuValues[j][r][0]);
         }
     }
-    
+
+    havePixelsValues = true;
 }
 
 
 void MinimumCodedUnit::transform(){
 
+    if (!havePixelsValues){
+        std::cerr << "There are not pixels values in here!" std::endl;
+        throw 1;
+    }
+
     // subtract 128
-    for (unsigned int w = 0; w < NUM_CHANNELS; ++w)
-        for (unsigned int i = 0; i < MCU_SIZE; ++i)
-            for (unsigned int j = 0; j < MCU_SIZE; ++j) 
-                mcuValues[w][i][j] -= 128;
+    // for (unsigned int w = 0; w < NUM_CHANNELS; ++w)
+    //     for (unsigned int i = 0; i < MCU_SIZE; ++i)
+    //         for (unsigned int j = 0; j < MCU_SIZE; ++j) 
+                // mcuValues[w][i][j] -= 128;
+
+    int *p = &mcuValues[0][0][0];
+    for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
+        p[i]-=128;
 
     
     // Apply FFT2D and quantizate the norm by Q
     FFT2DwithQuantization();
 
-    // Fill normFreq and phaseFreq Eigen matrices:
-     for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
-        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
-            for(unsigned int j = 0; j < MCU_SIZE; j++){
-                normFreqDenseEigen[channel](i, j) = normFreqDense[channel][i][j];
-                phaseFreqDenseEigen[channel](i, j) = phaseFreqDense[channel][i][j];
-            }
-        }
-    }
-
-
+    haveFreqValues = true;
 }
 constexpr unsigned numberOfBits(unsigned x) {
     return x < 2 ? x : 1+numberOfBits(x >> 1);
 }
 
 void MinimumCodedUnit::iTransform(){
+
+    if (!haveFreqValues){
+        std::cerr << "There are not frequency values in here!" std::endl;
+        throw 2;
+    }
+
     std::cout << "#############################################################################" << std::endl;
     std::cout << "Starting decompression phase:" << std::endl;
     // Step 1: multiply element wise per Q matrix: 
@@ -84,14 +75,12 @@ void MinimumCodedUnit::iTransform(){
         }
     }
 
-    
-
     // Step 2: Take the 2-dimensional inverse FFT:
     for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++){
         std::complex<double> input_cols[MCU_SIZE][MCU_SIZE];
 
         // Num bits:
-        unsigned int numBits = static_cast<unsigned int>(log2(MCU_SIZE));
+        constexpr unsigned int numBits = numberOfBits(MCU_SIZE) - 1;
         // Coefficient necessary for inverse FFT:
         constexpr double N_inv = 1.0 / static_cast<double>(MCU_SIZE * MCU_SIZE);
         
@@ -141,7 +130,7 @@ void MinimumCodedUnit::iTransform(){
             // s == numBits 
             
             {
-                unsigned int m = 1U << numBits; 
+                constexpr unsigned int m = 1U << numBits; 
                 std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
                 for (unsigned int k = 0; k < MCU_SIZE; k += m) {
                     std::complex<double> w = 1.0;
@@ -192,7 +181,6 @@ void MinimumCodedUnit::iTransform(){
                     for (unsigned int j = 0; j < m / 2; j++) {
                         std::complex<double> t = w * col_vector[k + j + m / 2];
                         std::complex<double> u = col_vector[k + j];
-                        // std::cout<<"Value NOT APPROX in the indexes: [" << channel <<"],row[" << k+j <<"],col[" <<i <<"] = " << (u+t).real()*N_inv << std::endl;
                         // Round to the nearest integer, add 128 and allocate the value to the element of the mcu values restored:
                         mcuValuesRestored[channel][k + j][i] = static_cast<int>((u + t).real() * N_inv + 128 + 0.5);
                         mcuValuesRestored[channel][k + j + m / 2][i] = static_cast<int>((u - t).real() * N_inv + 128 + 0.5);
@@ -203,32 +191,80 @@ void MinimumCodedUnit::iTransform(){
             }
         }
     }
-    // Fill mcuValuesRestored Eigen matrix: 
-    for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
-        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
-            for(unsigned int j = 0; j < MCU_SIZE; j++){
-                mcuValuesRestoredEigen[channel](i, j) = mcuValuesRestored[channel][i][j];
-            }
-        }
-    }
 
     std::cout << "Ended decompression phase." << std::endl;
     std::cout << "#############################################################################" << std::endl;
     
+    havePixelsValues = true;
     
 }
 
 void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuIdx){
 
+    if (!haveFreqValues){
+        std::cerr << "There are not frequency values to write!" std::endl;
+        throw 2;
+    }
+
     // Creates the file name for the phase matrix and the norm matrix:
     std::string normMatrixFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_norm.mtx";
     std::string phaseMatrixFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_phase.mtx";
+
+    // Use eigen to write matrices
+    Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen[NUM_CHANNELS];
+    Eigen::SparseMatrix<int, MCU_SIZE, MCU_SIZE> normFreqDenseEigen[NUM_CHANNELS]; // TODO fix here, to optimize space it should be sparse
+
+    // Fill normFreq and phaseFreq Eigen matrices:
+    for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
+        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
+            for(unsigned int j = 0; j < MCU_SIZE; j++){
+                normFreqDenseEigen[channel](i, j) = normFreqDense[channel][i][j]; // TODO fix here for sparse matrices
+                phaseFreqDenseEigen[channel](i, j) = phaseFreqDense[channel][i][j]; 
+            }
+        }
+    }
 
     // Save norm compressed matrix:
     Eigen::saveMarket(normFreqDenseEigen, normMatrixFilename);
 
     // Save phase compressed matrix:
     Eigen::saveMarket(phaseFreqDenseEigen, phaseMatrixFilename);
+    
+}
+
+void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuIdx){
+
+    // Use eigen to read matrices
+    Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
+    Eigen::Matrix<int, MCU_SIZE, MCU_SIZE> normFreqDenseEigen;
+
+    std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
+
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
+        phaseFreqDenseEigen = 0.0;
+        normFreqDenseEigen = 0.0;
+
+        // Read norm compressed matrix:
+        Eigen::loadMarket(normFreqDenseEigen, matricesFilename + std::to_string(i) + "_norm.mtx");
+
+        // Read phase compressed matrix:
+        Eigen::loadMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(i) + "_phase.mtx");
+
+
+        // Copy from eigen to static matrices:
+
+        // Fill mcuValuesRestored Eigen matrix: 
+        
+        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
+            for(unsigned int j = 0; j < MCU_SIZE; j++){
+                normFreqDense[channel](i, j) = normFreqDenseEigen(i,j);
+                phaseFreqDense[channel](i, j) = phaseFreqDenseEigen(i,j);
+            }
+        }
+        
+    }
+
+    haveFreqValues = true;
     
 }
 
@@ -377,12 +413,20 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
 }
 
 void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){
-        for (unsigned int i = 0; i < dataHeight; ++i) {
-            for (unsigned int j = 0; j < dataWidth; ++j) {
-                for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
-                    int pixelValue = mcuValuesRestored[channel][i][j];
-                    bufferPointer[imgWidth*i*NUM_CHANNELS + j*NUM_CHANNELS + channel] = static_cast<unsigned char>(pixelValue);
-                }
+
+    if (!havePixelsValues){
+        std::cerr << "There are not pixels to write!" std::endl;
+        throw 1;
+    }
+    for (unsigned int i = 0; i < dataHeight; ++i)
+    {
+        for (unsigned int j = 0; j < dataWidth; ++j)
+        {
+            for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++)
+            {
+                int pixelValue = mcuValuesRestored[channel][i][j]; // TODO delete restored, use only one matrix
+                bufferPointer[imgWidth * i * NUM_CHANNELS + j * NUM_CHANNELS + channel] = static_cast<unsigned char>(pixelValue);
             }
         }
+    }
 }
