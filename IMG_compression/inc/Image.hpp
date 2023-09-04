@@ -21,8 +21,7 @@ private:
     void readCompressed(); // legge l'immagine già compressa
     void readImage(); // legge l'immagine da comprimere
 
-
-    //void divideIntoBlocks(const Mat& frame, std::vector<Mat>& blocks); --> in readImage l'ho fatto
+    int imgHeight, imgWidth;
 
     // Image's MCUs vector
     std::vector<MinimumCodedUnit> imageMCUs;
