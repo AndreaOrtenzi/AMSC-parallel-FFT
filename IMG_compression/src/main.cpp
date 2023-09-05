@@ -19,7 +19,7 @@ int main(){
         // Specifica i percorsi delle cartelle e il nome dell'immagine
         std::string jpegImgsFolderPath = "./imgs/";
         std::string encodedFolderPath = "./imgs/compressed/";
-        std::string imgName = "orario_I_Semestre_IIAnno";
+        std::string imgName = "Spongebob";
 
         Image image(jpegImgsFolderPath, encodedFolderPath, imgName, false);
 
@@ -30,10 +30,10 @@ int main(){
         image.writeCompressed();
 
         // inverse transf:
-        //image.iTrasform();
+        image.iTrasform();
 
         // new encoded image:
-        //image.writeImage();
+        image.writeImage();
 
 
     return 0;
