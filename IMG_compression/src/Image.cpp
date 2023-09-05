@@ -1,4 +1,8 @@
 #include "../inc/Image.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "../../lib/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../../lib/stb_image_write.h"
 
 /*
 * paths to folder end with the / character
@@ -14,21 +18,29 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
     , hasFreqValues(isInputCompressed)
     , hasPixelsValues(!isInputCompressed)
 {
-    // TODO: Check if folders and files exist
-    // std::filesystem::exists()
+    // Check if folders and files exist:
+    if (!std::filesystem::is_directory(jpegImgsFolderPath) || !std::filesystem::is_directory(encodedFolderPath)) {
+        std::cerr << "One of the specified folders doesn't exist." << std::endl;
+        throw 1;
+    }
 
     // Call to the right function:
     if (isInputCompressed) {
         readCompressed();
     } else {
-        // check if exists file ipegImgsfolderpath + imgName + .jpg  se non esiste --> lancia messaggio errore : throw 1
+        std::string imagePath = jpegImgsFolderPath + imgName + ".png";
+        if (!std::filesystem::exists(imagePath)) {
+            std::cerr << "Image file doesn't exist." << std::endl;
+            throw 1;
+        }
         readImage();
     }
 }
 
 void Image::readImage(){
     int numChannels = NUM_CHANNELS;
-    unsigned char *imageData = stbi_load((jpegImgsFolderPath + imgName).c_str(), &imgWidth, &imgHeight, &numChannels, 0);
+    std::string imagePath = jpegImgsFolderPath + imgName + ".png";
+    unsigned char *imageData = stbi_load(imagePath.c_str(), &imgWidth, &imgHeight, &numChannels, 0);
 
     if (!imageData) {
         std::cerr << "Error occurred during the image reading." << std::endl;
@@ -121,10 +133,10 @@ void Image::writeCompressed() {
     if (!std::filesystem::exists(outputFolderPath)) {
         std::filesystem::create_directory(outputFolderPath);
     }
-    
-    for ( unsigned int i= 0; i< imageMCUs.size(); ++i)
+    std::cout<<"Prima di processare la prima MCU " << std::endl;
+    for ( unsigned int i= 0; i< imageMCUs.size(); ++i){
         imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
-
+    }
 }
 
 void Image::writeImage(){
@@ -159,8 +171,3 @@ void Image::writeImage(){
     // stb_image_write to write finale JPEG image:
     stbi_write_jpg( (jpegImgsFolderPath + imgName + "restored.jpg").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
 }
-
-
-
-
-

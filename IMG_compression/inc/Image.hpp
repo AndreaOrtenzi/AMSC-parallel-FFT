@@ -11,13 +11,6 @@
 
 using namespace std;
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "../../lib/stb_image.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../../lib/stb_image_write.h"
-
-
 class Image {
 public:
     Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, std::string imgName_, bool isInputCompressed);
@@ -27,7 +20,7 @@ public:
 
     // usa stb_image_write:
     void writeCompressed(); 
-    void writeImage(); // scrivere il file per l'immagine 
+    void writeImage(); 
     
 
 private:
@@ -36,8 +29,8 @@ private:
     std::string imgName;
     bool hasFreqValues, hasPixelsValues;
 
-    void readCompressed(); // legge l'immagine già compressa
-    void readImage(); // legge l'immagine da comprimere
+    void readCompressed();
+    void readImage(); 
 
     int imgHeight, imgWidth;
 

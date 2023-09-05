@@ -64,8 +64,6 @@ void MinimumCodedUnit::iTransform(){
         throw 2;
     }
 
-    std::cout << "#############################################################################" << std::endl;
-    std::cout << "Starting decompression phase:" << std::endl;
     // Step 1: multiply element wise per Q matrix: 
     for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++){
         for (unsigned int i = 0; i < MCU_SIZE; ++i){
@@ -191,9 +189,6 @@ void MinimumCodedUnit::iTransform(){
             }
         }
     }
-
-    std::cout << "Ended decompression phase." << std::endl;
-    std::cout << "#############################################################################" << std::endl;
     
     havePixelsValues = true;
     
@@ -205,7 +200,7 @@ void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuI
         std::cerr << "There are not frequency values to write!" << std::endl;
         throw 2;
     }
-
+    std::cout << "dentro MCU writeCompressedonFile" << std::endl;
     // Creates the file name for the phase matrix and the norm matrix:
     std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
@@ -268,8 +263,6 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
         
     // &mcuValues[w][0][0],&normFreq[w][0][0],&phaseFreq[w][0][0]
     constexpr unsigned int numBits = numberOfBits(MCU_SIZE) - 1;
-    std::cout << "#############################################################################" << std::endl;
-    std::cout << "Starting compression phase:" << std::endl;
     // Apply for each channel:
     for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
         
@@ -403,9 +396,6 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
             } 
         }
     } // for channels 
-    std::cout << "Ended compression phase." << std::endl;
-    std::cout << "#############################################################################" << std::endl;
-
 }
 
 void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){

@@ -1,30 +1,39 @@
-#include "../inc/MinimumCodedUnit.hpp"
+#include "../inc/Image.hpp"
 #include <string>
 
 
 int main(){
+    // TESTING MCU class with constructor commented: 
+    // MinimumCodedUnit img;
+    // img.transform();
 
-    // const int numMatrices = 1; // Change this to the desired number of matrices
-    // Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> matrixArray[numMatrices];
+    // std::string path = "./imgs/compressed/test"; 
+    // img.writeCompressedOnFile(path, 0);
+    // img.readCompressedFromFile(path, 0);
+    // img.iTransform();
 
-    // // Initialize each matrix
-    // for (int i = 0; i < numMatrices; ++i) {
-    //     // You can populate each matrix 'matrixArray[i]' here as needed.
+    // img.printRestored();
 
-    //     // For example, to change the value at (3,1) in the matrix at index 1 to 71:
-    //     if (i == 1) {
-    //         matrixArray[i](3, 1) = 71.0;
-    //     }
-    // }
-    MinimumCodedUnit img;
-    img.transform();
+    // TESTING Image:
 
-    std::string path = "./imgs/compressed/test"; 
-    img.writeCompressedOnFile(path, 0);
-    img.readCompressedFromFile(path, 0);
-    img.iTransform();
+        // Specifica i percorsi delle cartelle e il nome dell'immagine
+        std::string jpegImgsFolderPath = "./imgs/";
+        std::string encodedFolderPath = "./imgs/compressed/";
+        std::string imgName = "orario_I_Semestre_IIAnno";
 
-    img.printRestored();
+        Image image(jpegImgsFolderPath, encodedFolderPath, imgName, false);
+
+        // Read image and transform:
+        image.trasform();
+
+        // write compressed image:
+        image.writeCompressed();
+
+        // inverse transf:
+        //image.iTrasform();
+
+        // new encoded image:
+        //image.writeImage();
 
 
     return 0;

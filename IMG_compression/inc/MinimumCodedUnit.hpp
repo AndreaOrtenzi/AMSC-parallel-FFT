@@ -26,23 +26,23 @@ public:
         , haveFreqValues(false)
         , havePixelsValues(false) {};
 
-    // Use only for testing! TODO delete this
-    MinimumCodedUnit()
-    : dataWidth( MCU_SIZE )
-    , dataHeight( MCU_SIZE )
-    , imgWidth(128)
-    , imgHeight(128)
-    , haveFreqValues(false)
-    , havePixelsValues(true) {
-        //std::cout << "Print initial image values: " << std::endl;    
-        for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
-            for(unsigned int i = 0; i < MCU_SIZE; i++){
-                for(unsigned int j = 0; j < MCU_SIZE; j++){
-                    mcuValues[channel][i][j] = i*MCU_SIZE + j;
-                }
-            }
-        }
-    }
+    // // Use only for testing! TODO delete this
+    // MinimumCodedUnit()
+    // : dataWidth( MCU_SIZE )
+    // , dataHeight( MCU_SIZE )
+    // , imgWidth(128)
+    // , imgHeight(128)
+    // , haveFreqValues(false)
+    // , havePixelsValues(true) {
+    //     //std::cout << "Print initial image values: " << std::endl;    
+    //     for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
+    //         for(unsigned int i = 0; i < MCU_SIZE; i++){
+    //             for(unsigned int j = 0; j < MCU_SIZE; j++){
+    //                 mcuValues[channel][i][j] = i*MCU_SIZE + j;
+    //             }
+    //         }
+    //     }
+    // }
     
     // here FFT, Subtract128 and quantization
     void transform();
