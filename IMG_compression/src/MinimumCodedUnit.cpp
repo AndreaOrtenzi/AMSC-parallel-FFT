@@ -10,7 +10,7 @@ void MinimumCodedUnit::readImage(unsigned char* bufferPointer){
             
             // it should be unrolled
             for (unsigned int j = 0; j < NUM_CHANNELS; ++j){
-                mcuValues[j][r][c] = initialSquare[imgWidth*r*NUM_CHANNELS + c*NUM_CHANNELS + j];
+                mcuValues[j][r][c] = bufferPointer[imgWidth*r*NUM_CHANNELS + c*NUM_CHANNELS + j];
             }
         }
         // add padding if needed
@@ -33,7 +33,7 @@ void MinimumCodedUnit::readImage(unsigned char* bufferPointer){
 void MinimumCodedUnit::transform(){
 
     if (!havePixelsValues){
-        std::cerr << "There are not pixels values in here!" std::endl;
+        std::cerr << "There are not pixels values in here!" << std::endl;
         throw 1;
     }
 
@@ -60,7 +60,7 @@ constexpr unsigned numberOfBits(unsigned x) {
 void MinimumCodedUnit::iTransform(){
 
     if (!haveFreqValues){
-        std::cerr << "There are not frequency values in here!" std::endl;
+        std::cerr << "There are not frequency values in here!" << std::endl;
         throw 2;
     }
 
@@ -202,63 +202,59 @@ void MinimumCodedUnit::iTransform(){
 void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuIdx){
 
     if (!haveFreqValues){
-        std::cerr << "There are not frequency values to write!" std::endl;
+        std::cerr << "There are not frequency values to write!" << std::endl;
         throw 2;
     }
 
     // Creates the file name for the phase matrix and the norm matrix:
-    std::string normMatrixFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_norm.mtx";
-    std::string phaseMatrixFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_phase.mtx";
+    std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
-    // Use eigen to write matrices
-    Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen[NUM_CHANNELS];
-    Eigen::SparseMatrix<int, MCU_SIZE, MCU_SIZE> normFreqDenseEigen[NUM_CHANNELS]; // TODO fix here, to optimize space it should be sparse
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
 
-    // Fill normFreq and phaseFreq Eigen matrices:
-    for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
+        // Use eigen to write matrices
+        Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
+        Eigen::SparseMatrix<int> normFreqSparseEigen(MCU_SIZE, MCU_SIZE);
+
+        // Copy from eigen to static matrices, fill normFreq and phaseFreq Eigen matrices:
         for(unsigned int i = 0; i < MCU_SIZE; i++){ 
             for(unsigned int j = 0; j < MCU_SIZE; j++){
-                normFreqDenseEigen[channel](i, j) = normFreqDense[channel][i][j]; // TODO fix here for sparse matrices
-                phaseFreqDenseEigen[channel](i, j) = phaseFreqDense[channel][i][j]; 
+                normFreqSparseEigen.coeffRef(i, j) = normFreqDense[channel][i][j];
+                phaseFreqDenseEigen(i, j) = phaseFreqDense[channel][i][j];
             }
         }
-    }
 
-    // Save norm compressed matrix:
-    Eigen::saveMarket(normFreqDenseEigen, normMatrixFilename);
+        // Save norm compressed matrix:
+        Eigen::saveMarket(normFreqSparseEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
 
-    // Save phase compressed matrix:
-    Eigen::saveMarket(phaseFreqDenseEigen, phaseMatrixFilename);
-    
+        // Save phase compressed matrix:
+        Eigen::saveMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
+        
+    }  
 }
 
 void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuIdx){
 
-    // Use eigen to read matrices
-    Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
-    Eigen::Matrix<int, MCU_SIZE, MCU_SIZE> normFreqDenseEigen;
-
     std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
-    for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
-        phaseFreqDenseEigen = 0.0;
-        normFreqDenseEigen = 0.0;
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
+        
+        // Use eigen to read matrices, need phaseFreq in sparse version:
+        Eigen::SparseMatrix<double> phaseFreqEigen(MCU_SIZE, MCU_SIZE);
+        Eigen::SparseMatrix<int> normFreqEigen(MCU_SIZE, MCU_SIZE); 
 
         // Read norm compressed matrix:
-        Eigen::loadMarket(normFreqDenseEigen, matricesFilename + std::to_string(i) + "_norm.mtx");
+        Eigen::loadMarket(normFreqEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
 
         // Read phase compressed matrix:
-        Eigen::loadMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(i) + "_phase.mtx");
+        Eigen::loadMarket(phaseFreqEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
 
 
-        // Copy from eigen to static matrices:
-
-        // Fill mcuValuesRestored Eigen matrix: 
+        // Copy from eigen to static matrices and fill mcuValuesRestored Eigen matrix: 
         
         for(unsigned int i = 0; i < MCU_SIZE; i++){ 
             for(unsigned int j = 0; j < MCU_SIZE; j++){
-                normFreqDense[channel](i, j) = normFreqDenseEigen(i,j);
-                phaseFreqDense[channel](i, j) = phaseFreqDenseEigen(i,j);
+                normFreqDense[channel][i][j]= normFreqEigen.coeffRef(i,j);
+                phaseFreqDense[channel][i][j] = phaseFreqEigen.coeffRef(i,j);
             }
         }
         
@@ -415,7 +411,7 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
 void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){
 
     if (!havePixelsValues){
-        std::cerr << "There are not pixels to write!" std::endl;
+        std::cerr << "There are not pixels to write!" << std::endl;
         throw 1;
     }
     for (unsigned int i = 0; i < dataHeight; ++i)
