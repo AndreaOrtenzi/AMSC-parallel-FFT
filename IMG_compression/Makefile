@@ -19,6 +19,7 @@ obj:
 clear:
 	rm -rf obj
 	rm -f main.exe
+	rm -rf ./imgs/compressed/*
 
 .PHONY: all clear
 
