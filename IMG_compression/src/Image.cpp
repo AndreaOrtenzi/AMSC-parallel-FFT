@@ -133,7 +133,7 @@ void Image::writeCompressed() {
     if (!std::filesystem::exists(outputFolderPath)) {
         std::filesystem::create_directory(outputFolderPath);
     }
-    std::cout<<"Prima di processare la prima MCU " << std::endl;
+    
     for ( unsigned int i= 0; i< imageMCUs.size(); ++i){
         imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
     }
