@@ -49,11 +49,22 @@ public:
     void iTransform();
 
     void writeCompressedOnFile(std::string &outputFolder, int mcuIdx);
-    void readCompressedFromFile(std::string &inputFolder, int mcuIdx)
+    void readCompressedFromFile(std::string &inputFolder, int mcuIdx);
     
     void readImage(unsigned char* bufferPointer);
     void writeImage(unsigned char* bufferPointer);
 
+    void printRestored(){
+        for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
+            std::cout << "channel : " << channel << std::endl;
+            for(unsigned int i = 0; i < MCU_SIZE; i++){
+                for(unsigned int j = 0; j < MCU_SIZE; j++){
+                    std::cout << mcuValuesRestored[channel][i][j] << " " ;
+                }
+            std::cout << std::endl;
+            }
+        }
+    };
 
 protected:
 
@@ -77,7 +88,7 @@ private:
     const unsigned int imgWidth;
     const unsigned int imgHeight;
 
-    // Define the two version of private member Q, compression matrix: one static constexpr float mtx and Eigen version:
+    // Define compression matrix Q as one static constexpr float mtx 
     static constexpr float Q[MCU_SIZE][MCU_SIZE] = {{16,11,10,16,24,40,51,61},{12,12,14,19,26,58,60,55},{14,13,16,24,40,57,69,56}\
         ,{14,17,22,29,51,87,80,62},{18,22,37,56,68,109,103,77},{24,35,55,64,81,104,113,92},{49,64,78,87,103,121,120,101},{72,92,95,98,112,100,103,99}};
     
