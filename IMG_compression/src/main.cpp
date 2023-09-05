@@ -1,5 +1,5 @@
 #include "../inc/MinimumCodedUnit.hpp"
-#include "Eigen/Dense"
+#include <string>
 
 
 int main(){
@@ -19,9 +19,12 @@ int main(){
     MinimumCodedUnit img;
     img.transform();
 
-    img.writeCompressedOnFile("./imgs/compressed/test",0);
-
+    std::string path = "./imgs/compressed/test"; 
+    img.writeCompressedOnFile(path, 0);
+    img.readCompressedFromFile(path, 0);
     img.iTransform();
+
+    img.printRestored();
 
 
     return 0;
