@@ -20,7 +20,7 @@ using namespace std;
 
 class Image {
 public:
-    Image(std::string inputFilePath, std::string outputFilePath, bool isInputCompressed = false);
+    Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, std::string imgName_, bool isInputCompressed);
 
     void trasform();
     void iTrasform();
