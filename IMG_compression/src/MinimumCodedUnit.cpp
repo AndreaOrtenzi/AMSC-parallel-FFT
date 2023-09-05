@@ -200,7 +200,7 @@ void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuI
         std::cerr << "There are not frequency values to write!" << std::endl;
         throw 2;
     }
-    std::cout << "dentro MCU writeCompressedonFile" << std::endl;
+
     // Creates the file name for the phase matrix and the norm matrix:
     std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
