@@ -12,7 +12,7 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
     , encodedFolderPath(encodedFolderPath_)
     , imgName(imgName_)
     , hasFreqValues(isInputCompressed)
-    , hasPixelsValues(!isInputCompressed);
+    , hasPixelsValues(!isInputCompressed)
 {
     // TODO: Check if folders and files exist
     // std::filesystem::exists()
@@ -21,13 +21,14 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
     if (isInputCompressed) {
         readCompressed();
     } else {
+        // check if exists file ipegImgsfolderpath + imgName + .jpg  se non esiste --> lancia messaggio errore : throw 1
         readImage();
     }
 }
 
 void Image::readImage(){
-    constexpr int numChannels = NUM_CHANNELS;
-    unsigned char *imageData = stbi_load(inputFilePath.c_str(), &imgWidth, &imgHeight, &numChannels, 0);
+    int numChannels = NUM_CHANNELS;
+    unsigned char *imageData = stbi_load((jpegImgsFolderPath + imgName).c_str(), &imgWidth, &imgHeight, &numChannels, 0);
 
     if (!imageData) {
         std::cerr << "Error occurred during the image reading." << std::endl;
@@ -63,13 +64,13 @@ void Image::readImage(){
 void Image::trasform(){
 
     if (!hasPixelsValues){
-        std::cerr << "There are not pixels values here!" std::endl;
+        std::cerr << "There are not pixels values here!" << std::endl;
         throw 1;
     }
 
     // Define a lambda function to apply FFT2D for each MCU: [] --> captures nothing
     auto apply_FFT2D = [](MinimumCodedUnit &mcu) {
-        mcu.trasform(); // call to trasform method of MinimumCodeUnit
+        mcu.transform(); // call to trasform method of MinimumCodeUnit
     };
 
     // Use of std::for_each to apply lambda function to every MCU in the vector:
@@ -82,13 +83,13 @@ void Image::trasform(){
 void Image::iTrasform(){
 
     if (!hasFreqValues){
-        std::cerr << "There are not frequency values here!" std::endl;
+        std::cerr << "There are not frequency values here!" << std::endl;
         throw 2;
     }
     
     // At the same way for trasform method, define a lambda function:
     auto apply_iFFT2D  = [](MinimumCodedUnit &mcu) {
-        mcu.iTrasform(); // call to iTrasform method of MinimumCodeUnit
+        mcu.iTransform(); // call to iTrasform method of MinimumCodeUnit
     };
 
     // For each MCU apply the lambda function just definied: 
@@ -96,12 +97,12 @@ void Image::iTrasform(){
 
     hasPixelsValues = true;
 }
-// 
+
 void Image::readCompressed(){
 
-    std::filesystem::path outputFolderPath = encodedFolderPath + imgName;
-
-    for ( unsigned int i= 0; i< imageMCUs.size(); ++i)
+    std::string outputFolderPath = encodedFolderPath + imgName;
+    // TODO: cambiare imageMCU.size() in un parametro --> conta numero di matrici: ogni mcu ha 2 file
+    for (unsigned int i= 0; i< imageMCUs.size(); i++)
         imageMCUs[i].readCompressedFromFile(outputFolderPath, i);
 
     hasFreqValues = true;
@@ -110,11 +111,11 @@ void Image::readCompressed(){
 void Image::writeCompressed() {
 
     if (!hasFreqValues){
-        std::cerr << "There are not frequency values to write here!" std::endl;
+        std::cerr << "There are not frequency values to write here!" << std::endl;
         throw 2;
     }
 
-    std::filesystem::path outputFolderPath = encodedFolderPath + imgName;
+    std::string outputFolderPath = encodedFolderPath + imgName;
 
     // If directory doesn't exist, create it: 
     if (!std::filesystem::exists(outputFolderPath)) {
@@ -129,7 +130,7 @@ void Image::writeCompressed() {
 void Image::writeImage(){
 
     if (!hasPixelsValues){
-        std::cerr << "There are not pixel values to write here!" std::endl;
+        std::cerr << "There are not pixel values to write here!" << std::endl;
         throw 2;
     }
 
@@ -150,13 +151,13 @@ void Image::writeImage(){
             unsigned int mcuIdx = row * (imgWidth / MCU_SIZE) + col;
             MinimumCodedUnit& mcu = imageMCUs[mcuIdx];
 
-            mcu.writeImage(&imageData[(startY * imgWidth + startX) * NUM_CHANNELS]);
+            mcu.writeImage(&imageBuffer[(startY * imgWidth + startX) * NUM_CHANNELS]);
 
         }
     }
 
     // stb_image_write to write finale JPEG image:
-    stbi_write_jpg(outputFileName.c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
+    stbi_write_jpg( (jpegImgsFolderPath + imgName + "restored.jpg").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
 }
 
 
