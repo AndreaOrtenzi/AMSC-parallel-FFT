@@ -7,3 +7,6 @@
 #ifndef QUALITY // from 0 to 100 for function: int stbi_write_jpg(char const *filename, int w, int h, int comp, const void *data, int quality);
 #define QUALITY 100
 #endif 
+
+using norm_type = int;
+using phase_type = float; // can't be int it should allow type c = unsigned int a;

@@ -97,8 +97,8 @@ void MinimumCodedUnit::iTransform(){
                 for (unsigned int k = 0; k < MCU_SIZE; k += m) {
                     std::complex<double> w = 1.0;
                     for (unsigned int j = 0; j < m / 2; j++) {
-                        std::complex<double> t = w * std::polar(static_cast<double>(normFreqDense[channel][i][k + j + m / 2]), phaseFreqDense[channel][i][k + j + m / 2]); 
-                        std::complex<double> u = std::polar(static_cast<double>(normFreqDense[channel][i][k + j]), phaseFreqDense[channel][i][k + j]);
+                        std::complex<double> t = w * std::polar(static_cast<double>(normFreqDense[channel][i][k + j + m / 2]), static_cast<double>(phaseFreqDense[channel][i][k + j + m / 2])); 
+                        std::complex<double> u = std::polar(static_cast<double>(normFreqDense[channel][i][k + j]), static_cast<double>(phaseFreqDense[channel][i][k + j]));
                         row_vector[k + j] = u + t; 
                         row_vector[k + j + m / 2] = u - t;
                         w *= wm;
@@ -196,61 +196,61 @@ void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuI
         throw 2;
     }
 
-    // Creates the file name for the phase matrix and the norm matrix:
-    std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
+    // // Creates the file name for the phase matrix and the norm matrix:
+    // std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
-    for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
+    // for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
 
-        // Use eigen to write matrices
-        Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
-        Eigen::SparseMatrix<int> normFreqSparseEigen(MCU_SIZE, MCU_SIZE);
+    //     // Use eigen to write matrices
+    //     Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
+    //     Eigen::SparseMatrix<int> normFreqSparseEigen(MCU_SIZE, MCU_SIZE);
 
-        // Copy from eigen to static matrices, fill normFreq and phaseFreq Eigen matrices:
-        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
-            for(unsigned int j = 0; j < MCU_SIZE; j++){
-                normFreqSparseEigen.coeffRef(i, j) = normFreqDense[channel][i][j];
-                phaseFreqDenseEigen(i, j) = phaseFreqDense[channel][i][j];
-            }
-        }
+    //     // Copy from eigen to static matrices, fill normFreq and phaseFreq Eigen matrices:
+    //     for(unsigned int i = 0; i < MCU_SIZE; i++){ 
+    //         for(unsigned int j = 0; j < MCU_SIZE; j++){
+    //             normFreqSparseEigen.coeffRef(i, j) = normFreqDense[channel][i][j];
+    //             phaseFreqDenseEigen(i, j) = phaseFreqDense[channel][i][j];
+    //         }
+    //     }
 
-        // Save norm compressed matrix:
-        Eigen::saveMarket(normFreqSparseEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
+    //     // Save norm compressed matrix:
+    //     Eigen::saveMarket(normFreqSparseEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
 
-        // Save phase compressed matrix:
-        Eigen::saveMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
+    //     // Save phase compressed matrix:
+    //     Eigen::saveMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
         
-    }  
+    // }  
 }
 
 void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuIdx){
 
-    std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
+    // std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
-    for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
+    // for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
         
-        // Use eigen to read matrices, need phaseFreq in sparse version:
-        Eigen::SparseMatrix<double> phaseFreqEigen(MCU_SIZE, MCU_SIZE);
-        Eigen::SparseMatrix<int> normFreqEigen(MCU_SIZE, MCU_SIZE); 
+    //     // Use eigen to read matrices, need phaseFreq in sparse version:
+    //     Eigen::SparseMatrix<double> phaseFreqEigen(MCU_SIZE, MCU_SIZE);
+    //     Eigen::SparseMatrix<int> normFreqEigen(MCU_SIZE, MCU_SIZE); 
 
-        // Read norm compressed matrix:
-        Eigen::loadMarket(normFreqEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
+    //     // Read norm compressed matrix:
+    //     Eigen::loadMarket(normFreqEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
 
-        // Read phase compressed matrix:
-        Eigen::loadMarket(phaseFreqEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
+    //     // Read phase compressed matrix:
+    //     Eigen::loadMarket(phaseFreqEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
 
 
-        // Copy from eigen to static matrices and fill mcuValuesRestored Eigen matrix: 
+    //     // Copy from eigen to static matrices and fill mcuValuesRestored Eigen matrix: 
         
-        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
-            for(unsigned int j = 0; j < MCU_SIZE; j++){
-                normFreqDense[channel][i][j]= normFreqEigen.coeffRef(i,j);
-                phaseFreqDense[channel][i][j] = phaseFreqEigen.coeffRef(i,j);
-            }
-        }
+    //     for(unsigned int i = 0; i < MCU_SIZE; i++){ 
+    //         for(unsigned int j = 0; j < MCU_SIZE; j++){
+    //             normFreqDense[channel][i][j]= normFreqEigen.coeffRef(i,j);
+    //             phaseFreqDense[channel][i][j] = phaseFreqEigen.coeffRef(i,j);
+    //         }
+    //     }
         
-    }
+    // }
 
-    haveFreqValues = true;
+    // haveFreqValues = true;
     
 }
 
@@ -432,4 +432,20 @@ void MinimumCodedUnit::addToCompressClass(Compression<norm_type> &comp_norm, Com
         comp_phase.add(p_phase[i]);
     }
     
+}
+
+void MinimumCodedUnit::getFromCompressClass(Compression<norm_type>::Iterator &comp_norm, Compression<phase_type>::Iterator &comp_phase){
+    auto *p_norm = &normFreqDense[0][0][0];
+    auto *p_phase = &phaseFreqDense[0][0][0];
+
+    for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
+    {
+
+        p_norm[i] = *comp_norm;
+        comp_norm++;
+        p_phase[i] = *comp_phase;
+        comp_phase++;
+    }
+
+    haveFreqValues = true;
 }

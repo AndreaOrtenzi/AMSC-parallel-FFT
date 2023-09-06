@@ -6,17 +6,17 @@
 #include <type_traits>
 
 // Eigen library
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/Core>
-#include <unsupported/Eigen/SparseExtra> 
+// #include <Eigen/Dense>
+// #include <Eigen/Sparse>
+// #include <Eigen/Core>
+// #include <unsupported/Eigen/SparseExtra> 
 
-using namespace Eigen;
-using Mat = Eigen::MatrixXcd;
-using SpMat = Eigen::SparseMatrix<double>;
+// using namespace Eigen;
+// using Mat = Eigen::MatrixXcd;
+// using SpMat = Eigen::SparseMatrix<double>;
 
-using norm_type = double;
-using phase_type = double;
+// using norm_type = double;
+// using phase_type = double;
 
 // 8x8 sub image
 class MinimumCodedUnit {
@@ -63,6 +63,7 @@ public:
     void writeImage(unsigned char* bufferPointer);
 
     void addToCompressClass(Compression<norm_type> &comp_norm, Compression<phase_type> &comp_phase);
+    void getFromCompressClass(Compression<norm_type>::Iterator &comp_norm, Compression<phase_type>::Iterator &comp_phase);
 
     // Only for testing
     void printRestored(){

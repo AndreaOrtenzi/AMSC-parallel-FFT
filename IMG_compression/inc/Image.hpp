@@ -4,11 +4,12 @@
 
 #include <cmath>
 #include <algorithm> // to use std::for_each
-#include <filesystem> // for create directory compressed_images
+#include <filesystem> // to create directory compressed_images
 #include "parameters"
 
 #include "MinimumCodedUnit.hpp"
 // #include "../../Compression/inc/Compression.hpp"
+#include "../../lib/VectorInFiles.hpp"
 
 using namespace std;
 
@@ -37,6 +38,9 @@ private:
 
     // Image's MCUs vector
     std::vector<MinimumCodedUnit> imageMCUs;
+
+    Compression<phase_type> phase_comp;
+    Compression<norm_type> norm_comp;
 
 
 };
