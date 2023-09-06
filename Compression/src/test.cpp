@@ -25,7 +25,7 @@ int main()
     vector<unsigned int> codesLen;
 
     {
-        Compression<T> sam(11);
+        Compression<T> sam;
 
         T v = 2, v2 = 2;
 
@@ -130,11 +130,18 @@ int main()
     }
 	
     {
-    std::vector<T> values;
-	Compression<T> sam(encoded,vals,codes,codesLen,11);
-    sam.getValues(values);
-    for (auto i : values)
-        std::cout << i << std::endl;
+        std::vector<T> values;
+        Compression<T> sam(encoded,vals,codes,codesLen);
+        
+        for (auto i = sam.begin(); i != sam.end(); i++)
+            std::cout << *i << std::endl;
+        
+        std::cout << "Reverse " << std::endl;
+        auto i = sam.end();
+        while ( i != sam.begin()) {
+            i--;
+            std::cout << *i << std::endl;
+        }
     }
     // by default ios::out mode, automatically deletes
 	// the content of file. To append the content, open in ios:app

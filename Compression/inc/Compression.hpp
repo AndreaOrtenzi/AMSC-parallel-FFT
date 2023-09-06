@@ -265,6 +265,54 @@ public:
         }
     };
 
+    class Iterator {
+    public:
+        Iterator (Compression<T> &obj):idxRL(0),times(1),comp(obj){};
+        Iterator (Compression<T> &obj, unsigned int pos):idxRL(pos > obj.rlTimes.size() ? obj.rlTimes.size(): 0),times(1),comp(obj){};
+
+        void operator ++ (const int f) {
+            if (idxRL < comp.rlTimes.size()) {
+                if (times+1 > comp.rlTimes[idxRL]) {
+                    idxRL++;
+                    times = 1;
+                } else times++;
+            }
+        };
+        void operator -- (const int f) {
+            if (times <= 1) {
+                if (idxRL > 0 && ((idxRL-1) < comp.rlTimes.size())) {
+                    idxRL--;
+                    times = comp.rlTimes[idxRL];
+                }
+            } else times--;
+        };
+        bool operator == (const Iterator &v) const {
+            return idxRL == v.idxRL;
+        };
+        bool operator != (const Iterator &v) const {
+            return idxRL != v.idxRL;
+        };
+        const T& operator*() {
+            if (idxRL < comp.rlValues.size())
+                return comp.rlValues[idxRL];
+            std::cerr << "Iteretor reached the end" << std::endl;
+            throw 4;
+        };
+
+    protected:
+        unsigned int idxRL;
+        unsigned int times;
+    private:
+        Compression<T> &comp;
+        
+    };
+    Iterator begin () {
+        return Iterator(*this);
+    };
+    Iterator end () {
+        return Iterator(*this, UINT32_MAX);
+    };
+
 protected:
     void compressHC();
     double approximate(const double &value);
@@ -272,7 +320,6 @@ protected:
     int approximate(const int &value);
     unsigned approximate(const unsigned &value);
     unsigned char approximate(const unsigned char &value);
-private:
     
     // Run-length encoding
     std::vector<T> rlValues;
