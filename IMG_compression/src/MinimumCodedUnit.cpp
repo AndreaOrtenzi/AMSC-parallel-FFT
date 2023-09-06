@@ -196,61 +196,60 @@ void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuI
         throw 2;
     }
 
-    // // Creates the file name for the phase matrix and the norm matrix:
-    // std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
+    // Creates the file name for the phase matrix and the norm matrix:
+    std::string matricesFilename = outputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
-    // for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; ++channel) {
 
-    //     // Use eigen to write matrices
-    //     Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
-    //     Eigen::SparseMatrix<int> normFreqSparseEigen(MCU_SIZE, MCU_SIZE);
+        // Use eigen to write matrices
+        Eigen::Matrix<phase_type, MCU_SIZE, MCU_SIZE> phaseFreqDenseEigen;
+        Eigen::SparseMatrix<norm_type> normFreqSparseEigen(MCU_SIZE, MCU_SIZE);
 
-    //     // Copy from eigen to static matrices, fill normFreq and phaseFreq Eigen matrices:
-    //     for(unsigned int i = 0; i < MCU_SIZE; i++){ 
-    //         for(unsigned int j = 0; j < MCU_SIZE; j++){
-    //             normFreqSparseEigen.coeffRef(i, j) = normFreqDense[channel][i][j];
-    //             phaseFreqDenseEigen(i, j) = phaseFreqDense[channel][i][j];
-    //         }
-    //     }
+        // Copy from eigen to static matrices, fill normFreq and phaseFreq Eigen matrices:
+        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
+            for(unsigned int j = 0; j < MCU_SIZE; j++){
+                normFreqSparseEigen.coeffRef(i, j) = normFreqDense[channel][i][j];
+                phaseFreqDenseEigen(i, j) = phaseFreqDense[channel][i][j];
+            }
+        }
 
-    //     // Save norm compressed matrix:
-    //     Eigen::saveMarket(normFreqSparseEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
+        // Save norm compressed matrix:
+        Eigen::saveMarket(normFreqSparseEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
 
-    //     // Save phase compressed matrix:
-    //     Eigen::saveMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
+        // Save phase compressed matrix:
+        Eigen::saveMarket(phaseFreqDenseEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
         
-    // }  
+    }  
 }
 
 void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuIdx){
 
-    // std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
+    std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
 
-    // for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
+    for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
         
-    //     // Use eigen to read matrices, need phaseFreq in sparse version:
-    //     Eigen::SparseMatrix<double> phaseFreqEigen(MCU_SIZE, MCU_SIZE);
-    //     Eigen::SparseMatrix<int> normFreqEigen(MCU_SIZE, MCU_SIZE); 
+        // Use eigen to read matrices, need phaseFreq in sparse version:
+        Eigen::SparseMatrix<phase_type> phaseFreqEigen(MCU_SIZE, MCU_SIZE);
+        Eigen::SparseMatrix<norm_type> normFreqEigen(MCU_SIZE, MCU_SIZE); 
 
-    //     // Read norm compressed matrix:
-    //     Eigen::loadMarket(normFreqEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
+        // Read norm compressed matrix:
+        Eigen::loadMarket(normFreqEigen, matricesFilename + std::to_string(channel) + "_norm.mtx");
 
-    //     // Read phase compressed matrix:
-    //     Eigen::loadMarket(phaseFreqEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
+        // Read phase compressed matrix:
+        Eigen::loadMarket(phaseFreqEigen, matricesFilename + std::to_string(channel) + "_phase.mtx");
 
 
-    //     // Copy from eigen to static matrices and fill mcuValuesRestored Eigen matrix: 
+        // Copy from eigen to static matrices and fill mcuValuesRestored Eigen matrix: 
+        for(unsigned int i = 0; i < MCU_SIZE; i++){ 
+            for(unsigned int j = 0; j < MCU_SIZE; j++){
+                normFreqDense[channel][i][j]= normFreqEigen.coeffRef(i,j);
+                phaseFreqDense[channel][i][j] = phaseFreqEigen.coeffRef(i,j);
+            }
+        }
         
-    //     for(unsigned int i = 0; i < MCU_SIZE; i++){ 
-    //         for(unsigned int j = 0; j < MCU_SIZE; j++){
-    //             normFreqDense[channel][i][j]= normFreqEigen.coeffRef(i,j);
-    //             phaseFreqDense[channel][i][j] = phaseFreqEigen.coeffRef(i,j);
-    //         }
-    //     }
-        
-    // }
+    }
 
-    // haveFreqValues = true;
+    haveFreqValues = true;
     
 }
 
