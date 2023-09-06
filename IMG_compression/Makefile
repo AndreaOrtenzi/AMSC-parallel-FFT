@@ -20,7 +20,8 @@ clear:
 	rm -rf obj
 	rm -f main.exe
 	rm -rf ./imgs/compressed/*
-
+	rm -f ./imgs/*restored.jpg
+	
 .PHONY: all clear
 
 
