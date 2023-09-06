@@ -48,9 +48,11 @@ void Compression<T>::add(const  std::vector<T>& vals){
 
 template <class T>
 void Compression<T>::getCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen) {
+    std::cout << "Before compression" << std::endl;
     if (!isHcComputed){
         compressHC();
     }
+    std::cout << "After compression" << std::endl;
     
     ((const Compression<T>) *this).getCompressed(encoded,vals,codes, codesLen);
 }
@@ -73,6 +75,74 @@ void Compression<T>::getCompressed(std::vector<unsigned char> &encoded, std::vec
         codesLen[idx] = (*i).second.codeLen;
         idx++;
     }    
+}
+
+template <class T>
+void Compression<T>::setCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen) {
+    isHcComputed = false;
+
+    rlValues.clear();
+    rlTimes.clear();
+    hcValues.clear();
+    hcData.clear();
+
+    std::unordered_map<std::pair<COMPRESSED_TYPE, unsigned>,T> encodingMap;
+    encodingMap.reserve(vals.size());
+
+    for (unsigned int i = 0; i < vals.size(); ++i){
+        encodingMap.insert(std::make_pair(
+            std::make_pair(codes[i], codesLen[i]), vals[i]));
+    }
+    
+    COMPRESSED_TYPE code = 0;
+    unsigned int codeLen = 0;
+    bool isVal = true;
+    T lastVal;
+
+    constexpr int lastBitInByte = 7;
+
+    for (unsigned int idx = 0; idx < encoded.size() - 2; ++idx){
+
+        for (int j = lastBitInByte; j >= 0; --j){
+            code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
+            codeLen++;
+
+            auto found = encodingMap.find({code,codeLen});
+            if (found != encodingMap.end()){
+                if (isVal)
+                    lastVal = found->second;
+                else {
+                    for (int a = 0; a < found->second; ++a)
+                        add(lastVal);
+                }
+                isVal = ! isVal;
+                code = 0;
+                codeLen = 0;
+            }
+
+        }
+        
+    }
+    // last element represents the number of not used bit of the second last element
+    unsigned int idx = encoded.size() - 2;
+    for (int j = lastBitInByte; j >= static_cast<int>(encoded.back()); --j){
+        code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
+        codeLen++;
+
+        auto found = encodingMap.find({code,codeLen});
+        if (found != encodingMap.end()){
+            if (isVal)
+                lastVal = found->second;
+            else {
+                for (int a = 0; a < found->second; ++a)
+                    add(lastVal);
+            }
+            isVal = ! isVal;
+            code = 0;
+            codeLen = 0;
+        }
+
+    }
 }
 
 
