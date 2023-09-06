@@ -6,17 +6,14 @@
 #include <type_traits>
 
 // Eigen library
-// #include <Eigen/Dense>
-// #include <Eigen/Sparse>
-// #include <Eigen/Core>
-// #include <unsupported/Eigen/SparseExtra> 
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/Core>
+#include <unsupported/Eigen/SparseExtra> 
 
-// using namespace Eigen;
-// using Mat = Eigen::MatrixXcd;
-// using SpMat = Eigen::SparseMatrix<double>;
-
-// using norm_type = double;
-// using phase_type = double;
+using namespace Eigen;
+using Mat = Eigen::MatrixXcd;
+using SpMat = Eigen::SparseMatrix<double>;
 
 // 8x8 sub image
 class MinimumCodedUnit {
