@@ -28,13 +28,19 @@ int main(){
         image.trasform();
 
         // write compressed image:
-        // image.writeCompressed();
+        image.writeCompressed();
 
         // inverse transf:
         image.iTrasform();
 
+        // Read compressed image:
+        Image newImage(jpegImgsFolderPath, encodedFolderPath, imgName, true);
+
+        // Inverse transform:
+        newImage.iTrasform();
+
         // new encoded image:
-        image.writeImage();
+        newImage.writeImage();
 
 
     return 0;
