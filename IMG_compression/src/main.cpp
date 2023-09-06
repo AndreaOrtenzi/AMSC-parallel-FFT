@@ -16,7 +16,7 @@ int main(){
 
     // TESTING Image:
 
-        // Specifica i percorsi delle cartelle e il nome dell'immagine
+        // Specify folders paths and image name:
         std::string jpegImgsFolderPath = "./imgs/";
         std::string encodedFolderPath = "./imgs/compressed/";
         std::string imgName = "SpongebobJPG";
