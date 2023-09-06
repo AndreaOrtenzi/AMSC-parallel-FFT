@@ -34,8 +34,9 @@ void Parallel_OMP_FFT::recursiveFFT(std::complex<real> x[], const unsigned int n
         //******************************************************************
     //          Try with different numbers of threads 
     // unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
-    unsigned int numThreads = 2;
-    // unsigned int numThreads = 4;
+    // unsigned int numThreads = 2;
+    unsigned int numThreads = 4;
+    // unsigned int numThreads = omp_get_max_threads();
     // unsigned int numThreads = n;
     // ******************************************************************
 
@@ -66,11 +67,12 @@ void Parallel_OMP_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n
     //          Try with different numbers of threads 
     // unsigned int numThreads = static_cast<unsigned int>(ceil(log2(n)));
     unsigned int numThreads = 4;
-    // unsigned int numThreads = 4;
+    // unsigned int numThreads = omp_get_max_threads();
     // unsigned int numThreads = n;
     // ******************************************************************
 
-    for (unsigned int i = 0; i < n; i++) {
+    for (unsigned int i = 0; i < n; i++) 
+    {
         unsigned int j = 0;
         for (unsigned int k = 0; k < numBits; k++) {
             j = (j << 1) | ((i >> k) & 1U);
@@ -79,13 +81,11 @@ void Parallel_OMP_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n
             std::swap(x[i], x[j]);
         }
     }
-
-    #pragma omp parallel for num_threads(numThreads)
+    
     for (unsigned int s = 1; s <= numBits; s++) {
-        unsigned int m = 1U << s;
-        std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m)); // Twiddle factor
-    
-    
+        unsigned int m = 1U << s; 
+        std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
+        #pragma omp parallel for num_threads(numThreads) schedule(static)
         for (unsigned int k = 0; k < n; k += m) {
             std::complex<real> w = 1.0;
             for (unsigned int j = 0; j < m / 2; j++) {
@@ -107,8 +107,8 @@ void Parallel_OMP_FFT::iTransform(const std::vector<std::complex<real>>& fValues
     //******************************************************************
     //          Try with different numbers of threads 
     // unsigned int numThreads = static_cast<unsigned int>(log2(n));
+    // unsigned int numThreads = omp_get_max_threads();
     unsigned int numThreads = 4;
-    // unsigned int numThreads = 8;
     // unsigned int numThreads = n;
     // ******************************************************************
 
@@ -125,10 +125,11 @@ void Parallel_OMP_FFT::iTransform(const std::vector<std::complex<real>>& fValues
                 std::swap(freqVec[l], freqVec[j]);
             }
     }
-    #pragma omp parallel for num_threads(numThreads)
+    
     for (unsigned int s = 1; s <= numBits; s++) {
         unsigned int m = 1U << s; 
         std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
+        #pragma omp parallel for num_threads(numThreads)
         for (unsigned int k = 0; k < N; k += m) {
             std::complex<double> w = 1.0;
             for (unsigned int j = 0; j < m / 2; j++) {
