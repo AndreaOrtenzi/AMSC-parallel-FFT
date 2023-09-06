@@ -46,7 +46,7 @@ void Image::readImage(){
         std::cerr << "Error occurred during the image reading." << std::endl;
         throw 1;
     }
-    std::cout << " Starting reading image  ****" << std::endl;
+    std::cout << "**** Starting Reading Image  ****" << std::endl;
     // Calculate number of MCUs in width and in height:
     unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
     unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
@@ -69,7 +69,7 @@ void Image::readImage(){
     // Free the memory used for image: 
     stbi_image_free(imageData);
 
-    std::cout << " Read image finished  ****" << std::endl;
+    std::cout << "**** Read Image Finished ****" << std::endl;
 
     hasPixelsValues = true;
 }
@@ -77,7 +77,7 @@ void Image::readImage(){
 // Trasform every MCU in the vector imageMCUs: 
 void Image::trasform(){
 
-    std::cout << " Starting FFT  ****" << std::endl;
+    std::cout << "**** Starting FFT ****" << std::endl;
 
     if (!hasPixelsValues){
         std::cerr << "There are not pixels values here!" << std::endl;
@@ -94,7 +94,7 @@ void Image::trasform(){
 
     hasFreqValues = true;
 
-    std::cout << " Finisched FFT  ****" << std::endl;
+    std::cout << "**** Finished FFT ****" << std::endl;
 }
 
 //Inverse Trasform every MCU in the vector imageMCUs:
@@ -105,7 +105,7 @@ void Image::iTrasform(){
         throw 2;
     }
 
-    std::cout << " Starting iFFT  ****" << std::endl;
+    std::cout << "**** Starting iFFT ****" << std::endl;
     
     // At the same way for trasform method, define a lambda function:
     auto apply_iFFT2D  = [](MinimumCodedUnit &mcu) {
@@ -117,18 +117,14 @@ void Image::iTrasform(){
 
     hasPixelsValues = true;
 
-    std::cout << " iFFT finished  ****" << std::endl;
+    std::cout << "**** iFFT finished ****" << std::endl;
 }
 
 void Image::readCompressed(){
 
     std::string outputFolderPath = encodedFolderPath + imgName;
-    // TODO: cambiare imageMCU.size() in un parametro --> conta numero di matrici: ogni mcu ha 2 file
-    // for (unsigned int i= 0; i< imageMCUs.size(); i++)
-    //     imageMCUs[i].readCompressedFromFile(outputFolderPath, i);
+    std::cout << "**** Starting Reading Compressed ****" << std::endl;
 
-    // Write a file with the metadata of the image
-    long unsigned int mcuSize = 0;
     {
         std::string inFile = outputFolderPath + "/metadata.txt";
         std::ifstream rfile(inFile);
@@ -138,7 +134,6 @@ void Image::readCompressed(){
             throw 5;
         }
 
-
         // Read the values from the file
         std::string line;
         if (std::getline(rfile, line)) {
@@ -147,84 +142,30 @@ void Image::readCompressed(){
         if (std::getline(rfile, line)) {
             imgHeight = std::stoi(line);
         }
-        if (std::getline(rfile, line)) {
-            mcuSize = std::stoi(line);
-        }
     }
 
-
-    // Read compressed norm vectors from a file
-    {
-        std::string inFile = outputFolderPath + "/norm.bytes";
-        std::ifstream rfile(inFile);
-
-        vector<unsigned char> encoded;
-        vector<norm_type> vals;
-        vector<unsigned char> codes;
-        vector<unsigned int> codesLen;
-
-        VectorInFiles::readVector(encoded, rfile);
-        VectorInFiles::readVector(vals, rfile);
-        VectorInFiles::readVector(codes, rfile);
-        VectorInFiles::readVector(codesLen, rfile);
-
-        norm_comp.setCompressed(encoded, vals, codes, codesLen);
-        
-    }
-    // Read compressed phase vectors from a file
-    {
-        std::string inFile = outputFolderPath + "/phase.bytes";
-        std::ifstream rfile(inFile);
-
-        vector<unsigned char> encoded;
-        vector<phase_type> vals;
-        vector<unsigned char> codes;
-        vector<unsigned int> codesLen;
-
-        VectorInFiles::readVector(encoded, rfile);
-        VectorInFiles::readVector(vals, rfile);
-        VectorInFiles::readVector(codes, rfile);
-        VectorInFiles::readVector(codesLen, rfile);
-
-        phase_comp.setCompressed(encoded, vals, codes, codesLen);
-    }
-
-    auto norm_iterator = norm_comp.begin();
-    auto phase_iterator = phase_comp.begin();
-
-    // Calculate number of MCUs in width and in height:
     unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
     unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
-    
 
-    if (imageMCUs.size()==mcuSize) {
-        for ( long unsigned int i= 0; i< mcuSize; ++i){
-            // imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
-            imageMCUs[i].getFromCompressClass(norm_iterator,phase_iterator);
-        }
-    } 
-    else{
-        if (imageMCUs.empty()){
-            for (unsigned int row = 0; row < numMCUsHeight; row++) {
-                for (unsigned int col = 0; col < numMCUsWidth; col++) {
-                    unsigned int startX = col * MCU_SIZE;
-                    unsigned int startY = row * MCU_SIZE;
+    unsigned int i = 0; 
+    for (unsigned int row = 0; row < numMCUsHeight; row++) {
+            for (unsigned int col = 0; col < numMCUsWidth; col++) {
+                unsigned int startX = col * MCU_SIZE;
+                unsigned int startY = row * MCU_SIZE;
 
-                    // Let's create a MCU from pixel in the specified area:
-                    MinimumCodedUnit mcu(imgWidth, imgHeight, startY, startX);
-                    mcu.getFromCompressClass(norm_iterator,phase_iterator);
+                // Let's create a MCU from pixel in the specified area:
+                MinimumCodedUnit mcu(imgWidth, imgHeight, startY, startX);
+                mcu.readCompressedFromFile(outputFolderPath, i);
 
-                    // Add the new unit to MCUs' vector of image:
-                    imageMCUs.push_back(mcu);
-                }
+                // Add the new unit to MCUs' vector of image:
+                imageMCUs.push_back(mcu);
+                i++;
             }
-        }else {
-            std::cerr << "Something strange happened with the number of mcus" << std::endl;
-            throw 6;
-        }
-    }
-
+        }     
     hasFreqValues = true;
+
+    std::cout << "**** Finished Reading Compressed ****" << std::endl;
+
 }
 
 void Image::writeCompressed() {
@@ -233,7 +174,6 @@ void Image::writeCompressed() {
         std::cerr << "There are not frequency values to write here!" << std::endl;
         throw 2;
     }
-    std::cout << " Starting writing compressed  ****" << std::endl;
 
     std::string outputFolderPath = encodedFolderPath + imgName;
 
@@ -242,7 +182,7 @@ void Image::writeCompressed() {
         std::filesystem::create_directory(outputFolderPath);
     }
 
-    // Write a file with the metadata of the image
+    // Write a file with the metadata of the image:
     {
         std::string outFile = outputFolderPath + "/metadata.txt";
         std::ofstream wfile(outFile);
@@ -250,54 +190,14 @@ void Image::writeCompressed() {
         wfile << std::to_string(imgWidth) << std::endl;
         wfile << std::to_string(imgHeight) << std::endl;
         wfile << std::to_string(imageMCUs.size()) << std::endl;
-
     }
-    std::cout << "starting adding to compressed" << std::endl;
+    std::cout << "**** Starting to write all the MCUs ****" << std::endl;
+    std::cout << " \tCompleted: 0 / " << imageMCUs.size();
     for ( unsigned int i= 0; i< imageMCUs.size(); ++i){
-        // imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
-        imageMCUs[i].addToCompressClass(norm_comp,phase_comp);
-        if (i%80==0)
-            std::cout << " \r \tCompleted: " << i+1 << "/" << imageMCUs.size();
+        imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
+        std::cout << " \r \tCompleted: " << i+1 << " / " << imageMCUs.size();
     }
-    std::cout << "\rfinished adding to compressed" << std::endl;
-
-    // Write compressed norm vectors in a file
-    {
-        std::string outFile = outputFolderPath + "/norm.bytes";
-        std::ofstream wfile(outFile);
-
-        vector<unsigned char> encoded;
-        vector<norm_type> vals;
-        vector<unsigned char> codes;
-        vector<unsigned int> codesLen;
-
-        std::cout << "Norm" << std::endl;
-        norm_comp.getCompressed(encoded, vals, codes, codesLen);
-
-        VectorInFiles::writeVector(encoded, wfile);
-        VectorInFiles::writeVector(vals, wfile);
-        VectorInFiles::writeVector(codes, wfile);
-        VectorInFiles::writeVector(codesLen, wfile);
-    }
-    // Write compressed phase vectors in a file
-    {
-        std::string outFile = outputFolderPath + "/phase.bytes";
-        std::ofstream wfile(outFile);
-
-        vector<unsigned char> encoded;
-        vector<phase_type> vals;
-        vector<unsigned char> codes;
-        vector<unsigned int> codesLen;
-        std::cout << "Phase" << std::endl;
-        phase_comp.getCompressed(encoded, vals, codes, codesLen);
-
-        VectorInFiles::writeVector(encoded, wfile);
-        VectorInFiles::writeVector(vals, wfile);
-        VectorInFiles::writeVector(codes, wfile);
-        VectorInFiles::writeVector(codesLen, wfile);
-    }
-    
-    std::cout << " Finished to write compressed  ****" << std::endl;
+    std::cout << std::endl;
 }
 
 void Image::writeImage(){
@@ -331,6 +231,4 @@ void Image::writeImage(){
 
     // stb_image_write to write finale JPEG image:
     stbi_write_jpg( (jpegImgsFolderPath + imgName + "restored.jpg").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
-    // stb_image_write to write finale PNG image, imgWidth*NUM_CHANNELS is equal to  int stride_in_bytes:
-    //stbi_write_png((jpegImgsFolderPath + imgName + "restored.png").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), imgWidth * NUM_CHANNELS);
 }
