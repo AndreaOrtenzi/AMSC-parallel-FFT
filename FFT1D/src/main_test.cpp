@@ -1,5 +1,5 @@
 #ifndef ARRAY_LENGTH
-#define ARRAY_LENGTH 8
+#define ARRAY_LENGTH 1024
 #endif
 #ifndef CHECK_CORRECTNESS
 #define CHECK_CORRECTNESS true
@@ -99,10 +99,10 @@ int checkCorrectness(const string implemName, const vector<complex<Real>> &corre
             j++;
     }
     if (!isCorrect) {
-        std::cout << "WRONG TRANSFORMATION!" << endl;// \nFirst difference in "<< implem_name <<": x[" << i << "] = " << x[i] << ", y[" << i << "] = " << y << endl;
+        std::cout << "WRONG TRANSFORMATION!" << endl;
         return 1;
     }
-    std::cout << "Correct transformation!" << endl;
+    std::cout << "Correct transformation " << implemName << "!"<< endl;
     return 0;
 }
 #endif
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
             checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
             // Check the inverse:
             fft.iTransform();
-            checkCorrectness(implementationName + " inverse:", xSpace, fft.getSpatialValues());
+            checkCorrectness(implementationName + " inverse", xSpace, fft.getSpatialValues());
         #endif
         
         #if TIME_IMPL
@@ -234,6 +234,7 @@ int main(int argc, char *argv[]) {
         std::cout << "----------------"<< implementationName <<"----------------" << endl;
 
         unsigned int i = 0;
+        xFreq = xSpace;
         #if TIME_IMPL
         total = 0.0;
         for( i = 0; i < iterToTime; i++ ){
@@ -256,6 +257,10 @@ int main(int argc, char *argv[]) {
         
         #if CHECK_CORRECTNESS
             checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
+            // Check the inverse:
+            fft.iTransform();
+            checkCorrectness(implementationName + " inverse", xSpace, fft.getSpatialValues());
+
         #endif
         
         #if TIME_IMPL
@@ -303,6 +308,9 @@ int main(int argc, char *argv[]) {
             if (world_rank==0){
                 DFT(xFreq.data(),xFreq.size());
                 checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
+                // Check the inverse:
+                fft.iTransform();
+                checkCorrectness(implementationName + " inverse", xSpace, fft.getSpatialValues());
             }
         #endif
         
