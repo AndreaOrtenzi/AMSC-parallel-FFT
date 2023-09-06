@@ -11,33 +11,112 @@
 #define COMPRESSED_TYPE unsigned char // unsigned short MAX: 65535, unsigned char MAX: 255
 #endif
 
+namespace std {
+    template <>
+    struct hash<std::pair<COMPRESSED_TYPE, unsigned int>> {
+        std::size_t operator()(const std::pair<COMPRESSED_TYPE, unsigned int>& key) const {
+            // Implement a suitable hash function here.
+            // You can use the combination of the hash values of the two components.
+            return std::hash<COMPRESSED_TYPE>()(key.first) ^ std::hash<unsigned int>()(key.second);
+        }
+    };
+}
+
+
 // T must be more than unsigned int. I have to do T variable = unsigned int var;
 template <class T> class Compression {
 public:
-    Compression(){};
-    
-    Compression(const unsigned int numValues){
-        values.reserve(numValues);
-    };
+    Compression(unsigned int approx = 0):approximation(approx){};
 
-    Compression(const std::vector<T> &vals){
-        values.reserve(vals.size());
+    Compression(const std::vector<T> &vals, unsigned int approx = 0):approximation(approx){
         add(vals);
     };
 
-    // TODO
-    Compression(const std::vector<char> &compressedVals){
-        std::cout <<" Compression constructor not implemented yet TODO" << std::endl;
-        throw 33;
+    Compression(const std::vector<unsigned char> &encoded,
+                const std::vector<T> &vals,
+                const std::vector<COMPRESSED_TYPE> &codes,
+                const std::vector<unsigned int> &codesLen,
+                unsigned int approx = 0) : approximation(approx)
+    {
+        isHcComputed = false;
+
+        rlValues.clear();
+        rlTimes.clear();
+        hcValues.clear();
+        hcData.clear();
+
+        std::unordered_map<std::pair<COMPRESSED_TYPE, unsigned>,T> encodingMap;
+        encodingMap.reserve(vals.size());
+
+        for (unsigned int i = 0; i < vals.size(); ++i){
+            encodingMap.insert(std::make_pair(
+                std::make_pair(codes[i], codesLen[i]), vals[i]));
+        }
+        
+        COMPRESSED_TYPE code = 0;
+        unsigned int codeLen = 0;
+        bool isVal = true;
+        T lastVal;
+
+        constexpr int lastBitInByte = 7;
+
+        for (unsigned int idx = 0; idx < encoded.size() - 2; ++idx){
+
+            for (int j = lastBitInByte; j >= 0; --j){
+                code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
+                codeLen++;
+
+                auto found = encodingMap.find({code,codeLen});
+                if (found != encodingMap.end()){
+                    if (isVal)
+                        lastVal = found->second;
+                    else {
+                        for (int a = 0; a < found->second; ++a)
+                            add(lastVal);
+                    }
+                    isVal = ! isVal;
+                    code = 0;
+                    codeLen = 0;
+                }
+
+            }
+            
+        }
+        // last element represents the number of not used bit of the second last element
+        unsigned int idx = encoded.size() - 2;
+        for (int j = lastBitInByte; j >= static_cast<int>(encoded.back()); --j){
+            code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
+            codeLen++;
+
+            auto found = encodingMap.find({code,codeLen});
+            if (found != encodingMap.end()){
+                if (isVal)
+                    lastVal = found->second;
+                else {
+                    for (int a = 0; a < found->second; ++a)
+                        add(lastVal);
+                }
+                isVal = ! isVal;
+                code = 0;
+                codeLen = 0;
+            }
+
+        }
     };
 
-    void add(const T& val);
+    void add(const T& i_val);
     void add(const  std::vector<T>& vals); // a.reserve(a.size() + b.size() + c.size()); a.insert(a.end(), b.begin(), b.end());
 
     void getCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen) const;
     void getCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen);
 
-    void decompress(const std::vector<unsigned char> &encoded, const std::vector<T>& vals, const std::vector<COMPRESSED_TYPE> &codes);
+    void getValues(std::vector<T>& vals) const {
+        vals.clear();
+        for (unsigned int i = 0; i< rlValues.size();++i){
+            for (unsigned int j = 0; j<rlTimes[i]; ++j)
+                vals.push_back(rlValues[i]);
+        }
+    }
     
     class HCInfo {
     public:
@@ -188,9 +267,11 @@ public:
 
 protected:
     void compressHC();
+    double approximate(const double &value);
+    float approximate(const float &value);
+    
+    T approximate(const T &value);
 private:
-
-    std::vector<T> values;
     
     // Run-length encoding
     std::vector<T> rlValues;
@@ -203,7 +284,7 @@ private:
 
     bool isHcComputed = true;
 
-    
+    const unsigned int approximation;
 };
 
 #include "../src/Compression.tpp"

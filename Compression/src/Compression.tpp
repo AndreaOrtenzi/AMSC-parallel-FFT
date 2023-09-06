@@ -1,6 +1,7 @@
 
 template <class T>
-void Compression<T>::add(const T& val){
+void Compression<T>::add(const T& i_val){
+    T val = approximate(i_val);
     // remove last value of rlTimes if it has frequency 1 because it's going to change => frequency 0
     if (isHcComputed && !rlTimes.empty()){
         T lastValueTimes = (T) rlTimes.back();
@@ -105,7 +106,7 @@ void Compression<T>::compressHC(){
         hcDataTree.insert(&((*j).second));
     }
 
-    while(hcDataTree.size()>1){        
+    while(hcDataTree.size()>1){
         
         HCInfo *sxNode = *(hcDataTree.begin());
         hcDataTree.erase(hcDataTree.begin());
@@ -216,4 +217,25 @@ void Compression<T>::compressHC(){
         hcData[lastValueTimes]--;
 
     isHcComputed = true;
+}
+
+template <class T>
+inline double Compression<T>::approximate(const double &value){
+    if (!approximation)
+        return value;
+
+    double v = value / (2 * approximation);
+    return v * (2 * approximation);
+}
+template <class T>
+inline float Compression<T>::approximate(const float &value){
+    if (!approximation)
+        return value;
+        
+    double v = value / (2 * approximation);
+    return v * (2 * approximation);
+}
+template <class T>
+inline T Compression<T>::approximate(const T &value){
+    return (value >> approximation)<< approximation;
 }
