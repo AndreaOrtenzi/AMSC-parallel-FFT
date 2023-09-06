@@ -14,13 +14,18 @@
 // T must be more than unsigned int. I have to do T variable = unsigned int var;
 template <class T> class Compression {
 public:
-    Compression(){};
+    Compression(unsigned int approx = 0):approximation(approx){};
 
-    Compression(const std::vector<T> &vals){
+    Compression(const std::vector<T> &vals, unsigned int approx = 0):approximation(approx){
         add(vals);
     };
 
-    Compression(const std::vector<unsigned char> &encoded, const std::vector<T> &vals, const std::vector<COMPRESSED_TYPE> &codes, const std::vector<unsigned int> &codesLen){
+    Compression(const std::vector<unsigned char> &encoded,
+                const std::vector<T> &vals,
+                const std::vector<COMPRESSED_TYPE> &codes,
+                const std::vector<unsigned int> &codesLen,
+                unsigned int approx = 0) : approximation(approx)
+    {
         isHcComputed = false;
 
         rlValues.clear();
@@ -44,8 +49,8 @@ public:
                         if (isVal)
                             lastVal = vals[w];
                         else {
-                            for (unsigned int a = 0; a< vals[w]; ++a)
-                                add(lastVal);
+                            for (int a = 0; a< vals[w]; ++a)
+                                add(lastVal << approximation);
                         }
                         isVal = ! isVal;
                         code = 0;
@@ -58,7 +63,7 @@ public:
         }
         // last element gets only a part
         unsigned int idx = encoded.size() - 2;
-        for (int j = 7; j >= static_cast<int>(8-encoded.back()); --j){
+        for (int j = 7; j >= static_cast<int>(encoded.back()); --j){
             code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
             codeLen++;
 
@@ -67,8 +72,8 @@ public:
                     if (isVal)
                             lastVal = vals[w];
                         else {
-                            for (unsigned int a = 0; a< vals[w]; ++a)
-                                add(lastVal);
+                            for (int a = 0; a< vals[w]; ++a)
+                                add(lastVal << approximation);
                         }
                         isVal = ! isVal;
                         code = 0;
@@ -79,7 +84,7 @@ public:
         }
     };
 
-    void add(const T& val);
+    void add(const T& i_val);
     void add(const  std::vector<T>& vals); // a.reserve(a.size() + b.size() + c.size()); a.insert(a.end(), b.begin(), b.end());
 
     void getCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen) const;
@@ -89,7 +94,7 @@ public:
         vals.clear();
         for (unsigned int i = 0; i< rlValues.size();++i){
             for (unsigned int j = 0; j<rlTimes[i]; ++j)
-                vals.push_back(rlValues[i]);
+                vals.push_back(rlValues[i] << approximation);
         }
     }
     
@@ -255,7 +260,7 @@ private:
 
     bool isHcComputed = true;
 
-    COMPRESSED_TYPE filter_array[8*sizeof(COMPRESSED_TYPE)];
+    const unsigned int approximation;
 };
 
 #include "../src/Compression.tpp"

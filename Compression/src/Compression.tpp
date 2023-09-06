@@ -1,6 +1,7 @@
 
 template <class T>
-void Compression<T>::add(const T& val){
+void Compression<T>::add(const T& i_val){
+    T val = i_val >> approximation;
     // remove last value of rlTimes if it has frequency 1 because it's going to change => frequency 0
     if (isHcComputed && !rlTimes.empty()){
         T lastValueTimes = (T) rlTimes.back();
