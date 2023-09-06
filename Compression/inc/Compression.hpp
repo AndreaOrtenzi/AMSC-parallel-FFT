@@ -269,8 +269,9 @@ protected:
     void compressHC();
     double approximate(const double &value);
     float approximate(const float &value);
-    
-    T approximate(const T &value);
+    int approximate(const int &value);
+    unsigned approximate(const unsigned &value);
+    unsigned char approximate(const unsigned char &value);
 private:
     
     // Run-length encoding

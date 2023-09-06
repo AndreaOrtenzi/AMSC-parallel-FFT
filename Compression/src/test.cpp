@@ -13,7 +13,7 @@ using namespace std;
 // Driver Code
 int main()
 {
-    using T = int;
+    using T = double;
 
     vector<T> vec(5,64); // size, const val
     vector<T> vec2(5,1); // size, const val
@@ -25,11 +25,11 @@ int main()
     vector<unsigned int> codesLen;
 
     {
-        Compression<T> sam(1);
+        Compression<T> sam(11);
 
         T v = 2, v2 = 2;
 
-        sam.add(2.0);
+        sam.add(2.48);
         sam.add(v);
         sam.add(vec[1]);
         sam.add(vec[1]);
@@ -131,7 +131,7 @@ int main()
 	
     {
     std::vector<T> values;
-	Compression<T> sam(encoded,vals,codes,codesLen,1);
+	Compression<T> sam(encoded,vals,codes,codesLen,11);
     sam.getValues(values);
     for (auto i : values)
         std::cout << i << std::endl;

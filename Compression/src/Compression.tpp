@@ -221,21 +221,39 @@ void Compression<T>::compressHC(){
 
 template <class T>
 inline double Compression<T>::approximate(const double &value){
-    if (!approximation)
-        return value;
+    // Mask 0xFFF0000000000000ULL gets only the exponent of a double
+    constexpr uint64_t masks[14] = {0xFFFFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFFF0ULL, 0xFFFFFFFFFFFFFF00ULL, 0xFFFFFFFFFFFFF000ULL, 0xFFFFFFFFFFFF0000ULL, 0xFFFFFFFFFFF00000ULL, 0xFFFFFFFFFF000000ULL, 0xFFFFFFFFF0000000ULL, 0xFFFFFFFF00000000ULL, 0xFFFFFFF000000000ULL, 0xFFFFFF0000000000ULL, 0xFFFFF00000000000ULL, 0xFFFF000000000000ULL, 0xFFF0000000000000ULL};
+    
+    double modifiedValue = value;
+    uint64_t* doubleBits = reinterpret_cast<uint64_t*>(&modifiedValue); // Treat the double as a uint64_t
 
-    double v = value / (2 * approximation);
-    return v * (2 * approximation);
+    // Mask out the fraction bits
+    *doubleBits &= masks[approximation >13 ? 13 : approximation]; 
+
+    return modifiedValue;
 }
 template <class T>
 inline float Compression<T>::approximate(const float &value){
-    if (!approximation)
-        return value;
-        
-    double v = value / (2 * approximation);
-    return v * (2 * approximation);
+    // Mask 0xFF800000U gets only the exponent of a float
+    constexpr uint32_t masks[7] = {0xFFFFFFFFU, 0xFFFFFFF0U, 0xFFFFFF00U, 0xFFFFF000U, 0xFFFF0000U, 0xFFF00000U, 0xFF800000U};
+    
+    float modifiedValue = value;
+    uint32_t* floatBits = reinterpret_cast<uint32_t*>(&modifiedValue);
+
+    // Mask out the fraction bits
+    *floatBits &= masks[approximation > 6 ? 6 : approximation]; 
+
+    return modifiedValue;
 }
 template <class T>
-inline T Compression<T>::approximate(const T &value){
+inline int Compression<T>::approximate(const int &value){
+    return (value >> approximation)<< approximation;
+}
+template <class T>
+inline unsigned Compression<T>::approximate(const unsigned &value){
+    return (value >> approximation)<< approximation;
+}
+template <class T>
+inline unsigned char Compression<T>::approximate(const unsigned char &value){
     return (value >> approximation)<< approximation;
 }
