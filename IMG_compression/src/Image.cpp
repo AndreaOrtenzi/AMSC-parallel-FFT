@@ -28,7 +28,7 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
     if (isInputCompressed) {
         readCompressed();
     } else {
-        std::string imagePath = jpegImgsFolderPath + imgName + ".png";
+        std::string imagePath = jpegImgsFolderPath + imgName + ".jpg";
         if (!std::filesystem::exists(imagePath)) {
             std::cerr << "Image file doesn't exist." << std::endl;
             throw 1;
@@ -39,7 +39,7 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
 
 void Image::readImage(){
     int numChannels = NUM_CHANNELS;
-    std::string imagePath = jpegImgsFolderPath + imgName + ".png";
+    std::string imagePath = jpegImgsFolderPath + imgName + ".jpg";
     unsigned char *imageData = stbi_load(imagePath.c_str(), &imgWidth, &imgHeight, &numChannels, 0);
 
     if (!imageData) {
@@ -170,4 +170,6 @@ void Image::writeImage(){
 
     // stb_image_write to write finale JPEG image:
     stbi_write_jpg( (jpegImgsFolderPath + imgName + "restored.jpg").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
+    // stb_image_write to write finale PNG image, imgWidth*NUM_CHANNELS is equal to  int stride_in_bytes:
+    //stbi_write_png((jpegImgsFolderPath + imgName + "restored.png").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), imgWidth * NUM_CHANNELS);
 }
