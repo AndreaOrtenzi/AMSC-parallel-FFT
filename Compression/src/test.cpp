@@ -25,11 +25,11 @@ int main()
     vector<unsigned int> codesLen;
 
     {
-        Compression<T> sam;
+        Compression<T> sam(1);
 
         T v = 2, v2 = 2;
 
-        sam.add(v);
+        sam.add(2.0);
         sam.add(v);
         sam.add(vec[1]);
         sam.add(vec[1]);
@@ -131,7 +131,7 @@ int main()
 	
     {
     std::vector<T> values;
-	Compression<T> sam(encoded,vals,codes,codesLen);
+	Compression<T> sam(encoded,vals,codes,codesLen,1);
     sam.getValues(values);
     for (auto i : values)
         std::cout << i << std::endl;

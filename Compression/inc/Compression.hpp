@@ -11,6 +11,18 @@
 #define COMPRESSED_TYPE unsigned char // unsigned short MAX: 65535, unsigned char MAX: 255
 #endif
 
+namespace std {
+    template <>
+    struct hash<std::pair<COMPRESSED_TYPE, unsigned int>> {
+        std::size_t operator()(const std::pair<COMPRESSED_TYPE, unsigned int>& key) const {
+            // Implement a suitable hash function here.
+            // You can use the combination of the hash values of the two components.
+            return std::hash<COMPRESSED_TYPE>()(key.first) ^ std::hash<unsigned int>()(key.second);
+        }
+    };
+}
+
+
 // T must be more than unsigned int. I have to do T variable = unsigned int var;
 template <class T> class Compression {
 public:
@@ -32,53 +44,61 @@ public:
         rlTimes.clear();
         hcValues.clear();
         hcData.clear();
+
+        std::unordered_map<std::pair<COMPRESSED_TYPE, unsigned>,T> encodingMap;
+        encodingMap.reserve(vals.size());
+
+        for (unsigned int i = 0; i < vals.size(); ++i){
+            encodingMap.insert(std::make_pair(
+                std::make_pair(codes[i], codesLen[i]), vals[i]));
+        }
         
         COMPRESSED_TYPE code = 0;
         unsigned int codeLen = 0;
         bool isVal = true;
         T lastVal;
 
+        constexpr int lastBitInByte = 7;
+
         for (unsigned int idx = 0; idx < encoded.size() - 2; ++idx){
 
-            for (int j = 7; j >= 0; --j){
+            for (int j = lastBitInByte; j >= 0; --j){
                 code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
                 codeLen++;
 
-                for (unsigned int w = 0; w < codes.size(); ++w){
-                    if (code == codes[w] && codeLen == codesLen[w]) {
-                        if (isVal)
-                            lastVal = vals[w];
-                        else {
-                            for (int a = 0; a< vals[w]; ++a)
-                                add(lastVal << approximation);
-                        }
-                        isVal = ! isVal;
-                        code = 0;
-                        codeLen = 0;
+                auto found = encodingMap.find({code,codeLen});
+                if (found != encodingMap.end()){
+                    if (isVal)
+                        lastVal = found->second;
+                    else {
+                        for (int a = 0; a < found->second; ++a)
+                            add(lastVal);
                     }
+                    isVal = ! isVal;
+                    code = 0;
+                    codeLen = 0;
                 }
 
             }
             
         }
-        // last element gets only a part
+        // last element represents the number of not used bit of the second last element
         unsigned int idx = encoded.size() - 2;
-        for (int j = 7; j >= static_cast<int>(encoded.back()); --j){
+        for (int j = lastBitInByte; j >= static_cast<int>(encoded.back()); --j){
             code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
             codeLen++;
 
-            for (unsigned int w = 0; w < codes.size(); ++w){
-                if (code == codes[w] && codeLen == codesLen[w]) {
-                    if (isVal)
-                            lastVal = vals[w];
-                        else {
-                            for (int a = 0; a< vals[w]; ++a)
-                                add(lastVal << approximation);
-                        }
-                        isVal = ! isVal;
-                        code = 0;
-                        codeLen = 0;
+            auto found = encodingMap.find({code,codeLen});
+            if (found != encodingMap.end()){
+                if (isVal)
+                    lastVal = found->second;
+                else {
+                    for (int a = 0; a < found->second; ++a)
+                        add(lastVal);
                 }
+                isVal = ! isVal;
+                code = 0;
+                codeLen = 0;
             }
 
         }
@@ -94,7 +114,7 @@ public:
         vals.clear();
         for (unsigned int i = 0; i< rlValues.size();++i){
             for (unsigned int j = 0; j<rlTimes[i]; ++j)
-                vals.push_back(rlValues[i] << approximation);
+                vals.push_back(rlValues[i]);
         }
     }
     
@@ -247,6 +267,10 @@ public:
 
 protected:
     void compressHC();
+    double approximate(const double &value);
+    float approximate(const float &value);
+    
+    T approximate(const T &value);
 private:
     
     // Run-length encoding
