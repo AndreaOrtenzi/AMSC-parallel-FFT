@@ -1,7 +1,9 @@
 #include "parameters"
-
+#include "../../Compression/inc/Compression.hpp"
 #include <iostream>
 #include <vector>
+#include <complex>
+#include <type_traits>
 
 // Eigen library
 #include <Eigen/Dense>
@@ -9,11 +11,12 @@
 #include <Eigen/Core>
 #include <unsupported/Eigen/SparseExtra> 
 
-using namespace std;
 using namespace Eigen;
 using Mat = Eigen::MatrixXcd;
 using SpMat = Eigen::SparseMatrix<double>;
 
+using norm_type = double;
+using phase_type = double;
 
 // 8x8 sub image
 class MinimumCodedUnit {
@@ -27,23 +30,28 @@ public:
         , havePixelsValues(false) {};
 
     // // Use only for testing! TODO delete this
-    // MinimumCodedUnit()
-    // : dataWidth( MCU_SIZE )
-    // , dataHeight( MCU_SIZE )
-    // , imgWidth(128)
-    // , imgHeight(128)
-    // , haveFreqValues(false)
-    // , havePixelsValues(true) {
-    //     //std::cout << "Print initial image values: " << std::endl;    
-    //     for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
-    //         for(unsigned int i = 0; i < MCU_SIZE; i++){
-    //             for(unsigned int j = 0; j < MCU_SIZE; j++){
-    //                 mcuValues[channel][i][j] = i*MCU_SIZE + j;
-    //             }
-    //         }
-    //     }
-    // }
-    
+    MinimumCodedUnit()
+    : dataWidth( MCU_SIZE )
+    , dataHeight( MCU_SIZE )
+    , imgWidth(128)
+    , imgHeight(128)
+    , haveFreqValues(false)
+    , havePixelsValues(true) {
+        //std::cout << "Print initial image values: " << std::endl;
+        for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
+            for(unsigned int i = 0; i < MCU_SIZE; i++){
+                for(unsigned int j = 0; j < MCU_SIZE; j++){
+                    mcuValues[channel][i][j] = 255;
+                }
+            }
+        }
+        // add not white values
+        std::vector<std::pair<unsigned,unsigned>> pos ={ {0,1}, {4,5}, {6,0}, {3,3} };
+        for (auto i : pos)
+            for (unsigned j = 0; j<NUM_CHANNELS;++j)
+                mcuValues[j][i.first][i.second] = 13;
+    }
+
     // here FFT, Subtract128 and quantization
     void transform();
     void iTransform();
@@ -54,6 +62,9 @@ public:
     void readImage(unsigned char* bufferPointer);
     void writeImage(unsigned char* bufferPointer);
 
+    void addToCompressClass(Compression<norm_type> &comp_norm, Compression<phase_type> &comp_phase);
+
+    // Only for testing
     void printRestored(){
         for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
             std::cout << "channel : " << channel << std::endl;
@@ -72,14 +83,10 @@ protected:
 
 private:
 
-    //Eigen::SparseMatrix<int> normFreqSparse[NUM_CHANNELS];
-    //Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> normFreqDense[NUM_CHANNELS];
-    //Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> phaseFreqDense[NUM_CHANNELS];
-
     // Static matrices: 
     int mcuValues[NUM_CHANNELS][MCU_SIZE][MCU_SIZE];
-    int normFreqDense[NUM_CHANNELS][8][8];
-    double phaseFreqDense[NUM_CHANNELS][8][8];
+    norm_type normFreqDense[NUM_CHANNELS][8][8];
+    phase_type phaseFreqDense[NUM_CHANNELS][8][8];
     int mcuValuesRestored[NUM_CHANNELS][8][8];
 
 

@@ -38,11 +38,6 @@ void MinimumCodedUnit::transform(){
     }
 
     // subtract 128
-    // for (unsigned int w = 0; w < NUM_CHANNELS; ++w)
-    //     for (unsigned int i = 0; i < MCU_SIZE; ++i)
-    //         for (unsigned int j = 0; j < MCU_SIZE; ++j) 
-                // mcuValues[w][i][j] -= 128;
-
     int *p = &mcuValues[0][0][0];
     for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
         p[i]-=128;
@@ -84,7 +79,7 @@ void MinimumCodedUnit::iTransform(){
         
         //First pass: Apply iFFT to each row:
         for (unsigned int i = 0; i < MCU_SIZE; ++i) {
-            std::vector<complex<double>> row_vector(MCU_SIZE); 
+            std::vector<std::complex<double>> row_vector(MCU_SIZE); 
             for (unsigned int l = 0; l < MCU_SIZE; l++) {
                 unsigned int j = 0;
                 for (unsigned int k = 0; k < numBits; k++) {
@@ -259,6 +254,14 @@ void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuI
     
 }
 
+template <typename RT,typename PT>
+inline RT my_cast(PT val){
+    if (std::is_floating_point<RT>::value) {
+        return static_cast<RT> (val);
+    }
+    return static_cast<RT> (val+0.5);
+}
+
 void MinimumCodedUnit::FFT2DwithQuantization(){
         
     // &mcuValues[w][0][0],&normFreq[w][0][0],&phaseFreq[w][0][0]
@@ -266,7 +269,6 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
     // Apply for each channel:
     for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++) {
         
-        Eigen::Matrix<double, MCU_SIZE, MCU_SIZE> matrix;
         std::complex<double> input_cols[MCU_SIZE][MCU_SIZE];
 
         //First pass: Apply FFT to each row
@@ -380,15 +382,13 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
                         std::complex<double> t = w * col_vector[k + j + m / 2];
                         std::complex<double> u = col_vector[k + j];
 
-                        normFreqDense[channel][k + j][i] = static_cast<int>(std::abs(u + t) / Q[k + j][i] + 0.5);
-                        phaseFreqDense[channel][k + j][i] = std::arg(u + t);
+                        normFreqDense[channel][k + j][i] = my_cast<norm_type>(std::abs(u + t) / Q[k + j][i]);
+                        phaseFreqDense[channel][k + j][i] = my_cast<phase_type>(std::arg(u + t));
                         
                         
 
-                        normFreqDense[channel][k + j + m / 2][i] = static_cast<int>(std::abs(u - t) / Q[k + j + m / 2][i] + 0.5);
-                        phaseFreqDense[channel][k + j + m / 2][i] = std::arg(u - t);
-                        //std::cout << "Print element in the indexes: channel[" << channel <<"],row[" << k+j <<"],col[" << i <<"] = " << static_cast<int>(std::abs(u + t) / Q[k + j][i] + 0.5) << std::endl;
-                        //std::cout << "Print element in the indexes: channel[" << channel <<"],row[" << k+j+m/2 <<"],col[" << i <<"] = " << static_cast<int>(std::abs(u - t) / Q[k + j + m / 2][i] + 0.5) << std::endl;
+                        normFreqDense[channel][k + j + m / 2][i] = my_cast<norm_type>(std::abs(u - t) / Q[k + j + m / 2][i]);
+                        phaseFreqDense[channel][k + j + m / 2][i] = my_cast<phase_type>(std::arg(u - t));
                         w *= wm;
                         
                     }
@@ -415,4 +415,21 @@ void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){
             }
         }
     }
+}
+
+void MinimumCodedUnit::addToCompressClass(Compression<norm_type> &comp_norm, Compression<phase_type> &comp_phase){
+    if (!haveFreqValues){
+        std::cerr << "There are not frequency values to compress!" << std::endl;
+        throw 2;
+    }
+
+    auto *p_norm = &normFreqDense[0][0][0];
+    auto *p_phase = &phaseFreqDense[0][0][0];
+
+    for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
+    {
+        comp_norm.add(p_norm[i]);
+        comp_phase.add(p_phase[i]);
+    }
+    
 }

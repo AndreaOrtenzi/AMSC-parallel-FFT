@@ -136,6 +136,7 @@ void Image::writeCompressed() {
     
     for ( unsigned int i= 0; i< imageMCUs.size(); ++i){
         imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
+        // imageMCUs[i].addToCompressClass(compress); TODO
     }
 }
 
