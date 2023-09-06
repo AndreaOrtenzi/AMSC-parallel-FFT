@@ -105,7 +105,7 @@ void Compression<T>::compressHC(){
         hcDataTree.insert(&((*j).second));
     }
 
-    while(hcDataTree.size()>1){        
+    while(hcDataTree.size()>1){
         
         HCInfo *sxNode = *(hcDataTree.begin());
         hcDataTree.erase(hcDataTree.begin());

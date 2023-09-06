@@ -15,20 +15,68 @@
 template <class T> class Compression {
 public:
     Compression(){};
-    
-    Compression(const unsigned int numValues){
-        values.reserve(numValues);
-    };
 
     Compression(const std::vector<T> &vals){
-        values.reserve(vals.size());
         add(vals);
     };
 
-    // TODO
-    Compression(const std::vector<char> &compressedVals){
-        std::cout <<" Compression constructor not implemented yet TODO" << std::endl;
-        throw 33;
+    Compression(const std::vector<unsigned char> &encoded, const std::vector<T> &vals, const std::vector<COMPRESSED_TYPE> &codes, const std::vector<unsigned int> &codesLen){
+        isHcComputed = false;
+
+        rlValues.clear();
+        rlTimes.clear();
+        hcValues.clear();
+        hcData.clear();
+        
+        COMPRESSED_TYPE code = 0;
+        unsigned int codeLen = 0;
+        bool isVal = true;
+        T lastVal;
+
+        for (unsigned int idx = 0; idx < encoded.size() - 2; ++idx){
+
+            for (int j = 7; j >= 0; --j){
+                code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
+                codeLen++;
+
+                for (unsigned int w = 0; w < codes.size(); ++w){
+                    if (code == codes[w] && codeLen == codesLen[w]) {
+                        if (isVal)
+                            lastVal = vals[w];
+                        else {
+                            for (unsigned int a = 0; a< vals[w]; ++a)
+                                add(lastVal);
+                        }
+                        isVal = ! isVal;
+                        code = 0;
+                        codeLen = 0;
+                    }
+                }
+
+            }
+            
+        }
+        // last element gets only a part
+        unsigned int idx = encoded.size() - 2;
+        for (int j = 7; j >= static_cast<int>(8-encoded.back()); --j){
+            code = (code<<1) | ((encoded[idx] & (1U << j))>>j);
+            codeLen++;
+
+            for (unsigned int w = 0; w < codes.size(); ++w){
+                if (code == codes[w] && codeLen == codesLen[w]) {
+                    if (isVal)
+                            lastVal = vals[w];
+                        else {
+                            for (unsigned int a = 0; a< vals[w]; ++a)
+                                add(lastVal);
+                        }
+                        isVal = ! isVal;
+                        code = 0;
+                        codeLen = 0;
+                }
+            }
+
+        }
     };
 
     void add(const T& val);
@@ -37,7 +85,13 @@ public:
     void getCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen) const;
     void getCompressed(std::vector<unsigned char> &encoded, std::vector<T>& vals, std::vector<COMPRESSED_TYPE> &codes, std::vector<unsigned int> &codesLen);
 
-    void decompress(const std::vector<unsigned char> &encoded, const std::vector<T>& vals, const std::vector<COMPRESSED_TYPE> &codes);
+    void getValues(std::vector<T>& vals) const {
+        vals.clear();
+        for (unsigned int i = 0; i< rlValues.size();++i){
+            for (unsigned int j = 0; j<rlTimes[i]; ++j)
+                vals.push_back(rlValues[i]);
+        }
+    }
     
     class HCInfo {
     public:
@@ -189,8 +243,6 @@ public:
 protected:
     void compressHC();
 private:
-
-    std::vector<T> values;
     
     // Run-length encoding
     std::vector<T> rlValues;
@@ -203,7 +255,7 @@ private:
 
     bool isHcComputed = true;
 
-    
+    COMPRESSED_TYPE filter_array[8*sizeof(COMPRESSED_TYPE)];
 };
 
 #include "../src/Compression.tpp"
