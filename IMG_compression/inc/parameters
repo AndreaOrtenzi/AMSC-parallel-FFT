@@ -8,5 +8,5 @@
 #define QUALITY 100
 #endif 
 
-using norm_type = int;
+using norm_type = float;
 using phase_type = float; // can't be int it should allow type c = unsigned int a;
