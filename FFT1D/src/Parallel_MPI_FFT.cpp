@@ -120,7 +120,7 @@ void Parallel_MPI_FFT::recursiveFFT(std::complex<real> x[], const unsigned int n
 }
 
 
-// A parallel implementation of the FFT iterative method using OpenMP.
+// A parallel implementation of the FFT iterative method using MPI.
 void Parallel_MPI_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
     for (unsigned int i = 0; i < n; i++) 
@@ -154,26 +154,36 @@ void Parallel_MPI_FFT::iTransform(const std::vector<std::complex<real>>& fValues
     //Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(N);
 
-    unsigned int numThreads = static_cast<unsigned int> (ceil(log2(N)));
-    std::vector<std::complex<real>> thread_partialsums(N * numThreads, std::complex<real>(0, 0));
-    
-    
-    for (unsigned int n = 0; n < N; ++n) {
-        std::complex<real> sum(0, 0);
-        for (unsigned int k = 0; k < N; ++k) {
-            std::complex<real> term = fValues[k] * std::exp(2.0 * M_PI * std::complex<real>(0, 1) * static_cast<real>(k * n) / static_cast<real>(N));
-            sum += term;
-        }
-        thread_partialsums[0 * N + n] = sum;
-    }
-    
+    std::vector<std::complex<real>> freqVec = fValues;
+    unsigned int numBits = static_cast<unsigned int>(log2(N));
 
-    //Combine partial sums from different threads
-    for (unsigned int n = 0; n < N; ++n) {
-        std::complex<real> sum(0, 0);
-        for (unsigned int t = 0; t < numThreads; t++) {
-            sum += thread_partialsums[t * N + n];
-        }
-        spatialValues[n] = sum / static_cast<real>(N);
+    // Bit reversal:
+    for (unsigned int l = 0; l < N; l++) {
+            unsigned int j = 0;
+            for (unsigned int k = 0; k < numBits; k++) {
+                j = (j << 1) | ((l >> k) & 1U);
+            }
+            if (j > l) {
+                std::swap(freqVec[l], freqVec[j]);
+            }
     }
+    
+    for (unsigned int s = 1; s <= numBits; s++) {
+        unsigned int m = 1U << s; 
+        std::complex<double> wm = std::exp(2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
+        for (unsigned int k = 0; k < N; k += m) {
+            std::complex<double> w = 1.0;
+            for (unsigned int j = 0; j < m / 2; j++) {
+                std::complex<double> t = w * freqVec[k + j + m / 2];
+                std::complex<double> u = freqVec[k + j];
+                freqVec[k + j] = u + t;
+                freqVec[k + j + m / 2] = u - t;
+                w *= wm;
+            }
+        }
+    }
+
+    for (unsigned int i = 0; i < N; ++i) {
+        spatialValues[i] = freqVec[i] / static_cast<real>(N);
+    }   
 }
