@@ -19,7 +19,7 @@ int main(){
         // Specifica i percorsi delle cartelle e il nome dell'immagine
         std::string jpegImgsFolderPath = "./imgs/";
         std::string encodedFolderPath = "./imgs/compressed/";
-        std::string imgName = "Spongebob";
+        std::string imgName = "SpongebobJPG";
 
         Image image(jpegImgsFolderPath, encodedFolderPath, imgName, false);
 
