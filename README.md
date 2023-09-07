@@ -23,14 +23,19 @@ The folder includes an **inc** folder containing all the classes used to impleme
 ## Compilation
 In order to compile we have provided a makefile in the folder.
 First, run:
+
 ```    
 make     
 ```
+
 then, will be created two executables: **test_library.exe** has been created in order to demonstrate the usage of the FFT1D as a library, **test.exe** . At this point, you can run:
+
 ``` 
 ./test_library.exe  
 ```
+
 and then:
+
 ```    
 ./test.exe -N [number that specifies the vector length] -iTT [number that specifies how many iterations you want perform for each class]     ```
 
@@ -47,9 +52,11 @@ This folder contains an **inc** folder containing the class used to implementing
 ### Compilation
 In order to compile we have provided a makefile in the folder.
 First, run:
+
 ``` 
 make   
 ```
+
 then, 
 
 ```   
@@ -103,9 +110,11 @@ After FFT, it quantizes the values using the quantization matrix Q.
 ### Compilation
 To test the compression, you have to upload in the folder **imgs** a JPEG image (we have provided two test images, one color image and one black and white image) and in the main file cpp specify correctly the image name and its path.
 After that, you can run: 
+
 ```
 make    
 ```
+
 and then:
 
 ``` 
