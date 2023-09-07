@@ -415,36 +415,3 @@ void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){
         }
     }
 }
-
-void MinimumCodedUnit::addToCompressClass(Compression<norm_type> &comp_norm, Compression<phase_type> &comp_phase){
-    if (!haveFreqValues){
-        std::cerr << "There are not frequency values to compress!" << std::endl;
-        throw 2;
-    }
-
-    auto *p_norm = &normFreqDense[0][0][0];
-    auto *p_phase = &phaseFreqDense[0][0][0];
-
-    for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
-    {
-        comp_norm.add(p_norm[i]);
-        comp_phase.add(p_phase[i]);
-    }
-    
-}
-
-void MinimumCodedUnit::getFromCompressClass(Compression<norm_type>::Iterator &comp_norm, Compression<phase_type>::Iterator &comp_phase){
-    auto *p_norm = &normFreqDense[0][0][0];
-    auto *p_phase = &phaseFreqDense[0][0][0];
-
-    for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
-    {
-
-        p_norm[i] = *comp_norm;
-        comp_norm++;
-        p_phase[i] = *comp_phase;
-        comp_phase++;
-    }
-
-    haveFreqValues = true;
-}
