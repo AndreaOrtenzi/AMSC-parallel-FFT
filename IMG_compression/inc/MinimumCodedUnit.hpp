@@ -1,5 +1,4 @@
 #include "parameters"
-#include "../../Compression/inc/Compression.hpp"
 #include <iostream>
 #include <vector>
 #include <complex>
@@ -26,29 +25,6 @@ public:
         , haveFreqValues(false)
         , havePixelsValues(false) {};
 
-    // // Use only for testing! TODO delete this
-    MinimumCodedUnit()
-    : dataWidth( MCU_SIZE )
-    , dataHeight( MCU_SIZE )
-    , imgWidth(128)
-    , imgHeight(128)
-    , haveFreqValues(false)
-    , havePixelsValues(true) {
-        //std::cout << "Print initial image values: " << std::endl;
-        for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
-            for(unsigned int i = 0; i < MCU_SIZE; i++){
-                for(unsigned int j = 0; j < MCU_SIZE; j++){
-                    mcuValues[channel][i][j] = 255;
-                }
-            }
-        }
-        // add not white values
-        std::vector<std::pair<unsigned,unsigned>> pos ={ {0,1}, {4,5}, {6,0}, {3,3} };
-        for (auto i : pos)
-            for (unsigned j = 0; j<NUM_CHANNELS;++j)
-                mcuValues[j][i.first][i.second] = 13;
-    }
-
     // here FFT, Subtract128 and quantization
     void transform();
     void iTransform();
@@ -58,22 +34,6 @@ public:
     
     void readImage(unsigned char* bufferPointer);
     void writeImage(unsigned char* bufferPointer);
-
-    void addToCompressClass(Compression<norm_type> &comp_norm, Compression<phase_type> &comp_phase);
-    void getFromCompressClass(Compression<norm_type>::Iterator &comp_norm, Compression<phase_type>::Iterator &comp_phase);
-
-    // Only for testing
-    void printRestored(){
-        for(unsigned int channel=0; channel<NUM_CHANNELS; channel++){
-            std::cout << "channel : " << channel << std::endl;
-            for(unsigned int i = 0; i < MCU_SIZE; i++){
-                for(unsigned int j = 0; j < MCU_SIZE; j++){
-                    std::cout << mcuValuesRestored[channel][i][j] << " " ;
-                }
-            std::cout << std::endl;
-            }
-        }
-    };
 
 protected:
 
