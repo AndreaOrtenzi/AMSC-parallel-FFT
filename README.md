@@ -23,11 +23,16 @@ The folder includes an **inc** folder containing all the classes used to impleme
 ## Compilation
 In order to compile we have provided a makefile in the folder.
 First, run:
-```    make     ```
+```    
+make     
+```
 then, will be created two executables: **test_library.exe** has been created in order to demonstrate the usage of the FFT1D as a library, **test.exe** . At this point, you can run:
-```    ./test_library.exe   ```
+``` 
+./test_library.exe  
+ ```
 and then:
-```    ./test.exe -N [number that specifies the vector length] -iTT [number that specifies how many iterations you want perform for each class]     ```
+```    
+./test.exe -N [number that specifies the vector length] -iTT [number that specifies how many iterations you want perform for each class]     ```
 
 Obviously, vector length provided must be a number power of 2 to perform FFT.
 
@@ -42,9 +47,13 @@ This folder contains an **inc** folder containing the class used to implementing
 ### Compilation
 In order to compile we have provided a makefile in the folder.
 First, run:
-```  make   ```
+``` 
+ make   
+```
 then, 
-```   ./test2D.exe -N [number that specifies the rows and columns length] -iTT [number that specifies how many iterations you want perform for each class] -nTH [number to set the number of threads used with OpenMP]   ```
+```   
+./test2D.exe -N [number that specifies the rows and columns length] -iTT [number that specifies how many iterations you want perform for each class] -nTH [number to set the number of threads used with OpenMP]   
+```
 
 ## FFT 2D with vectors of vectors
 
@@ -93,9 +102,13 @@ After FFT, it quantizes the values using the quantization matrix Q.
 ### Compilation
 To test the compression, you have to upload in the folder **imgs** a JPEG image (we have provided two test images, one color image and one black and white image) and in the main file cpp specify correctly the image name and its path.
 After that, you can run: 
-```     make    ```
+```
+make    
+```
 and then:
-``` ./main.exe  ```
+``` 
+./main.exe  
+```
 It's important to set the exact number of channel to use in **parameters** file in **inc** folder: NUM_CHANNELS = 1 for black&white, NUM_CHANNELS = 3 for color images.
 
 
