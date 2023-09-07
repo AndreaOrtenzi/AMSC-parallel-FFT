@@ -2,31 +2,40 @@
 template <class C> 
 void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<std::vector<std::complex<double>>>& freq_matrix, const unsigned int n_threads){
 
+    // Check if the input matrix is empty and return if it is.
     if (input_matrix.empty())
         return;
-        
+
+    // Get the number of columns and rows in the input matrix.
     const unsigned int n_cols = input_matrix[0].size(), n_rows = input_matrix.size();
 
+    // Calculate the number of bits needed for the FFT algorithm.
     unsigned int numBits = static_cast<unsigned int>(log2(n_cols));
 
-    std::vector<std::complex<double>> col(n_rows,0.0);
-    std::vector<std::vector<std::complex<double>>> input_cols(n_cols,col);
+    // Create temporary vectors for column-wise FFT processing.
+    std::vector<std::complex<double>> col(n_rows, 0.0);
+    std::vector<std::vector<std::complex<double>>> input_cols(n_cols, col);
     freq_matrix.resize(n_rows);
 
     // Compute the indexes to swap only once and save them in a map of n elements
-    std::unordered_map<unsigned int, unsigned int> swapIdxsRows, swapIdxsCols, *p_swapIdxsCols;
+    std::vector<unsigned int> swapIdxsRows(n_cols), swapIdxsCols;
 
-    for (unsigned int l = 0; l < n_cols; l++) { // **************
+    // Calculate the bit-reversal permutations for rows
+    const unsigned int halfNumBits = (numBits >> 1) + (numBits & 1U);
+    for (unsigned int l = 0; l < n_cols; l++) {
         unsigned int ji = 0;
-        for (unsigned int k = 0; k < numBits; k++) {
-            ji = (ji << 1) | ((l >> k) & 1U);
+        // Bit reversal code from 2 directions -> <-
+        for (unsigned int k = 0; k < halfNumBits; k++) {
+            unsigned int shiftFactor = (numBits - 1 - (k << 1U));
+            ji |= ((l & (1U << k)) << shiftFactor) | ((l & (1U << (numBits - 1 - k))) >> shiftFactor);
         }
-        if (ji > l) {
-            swapIdxsRows.emplace(l, ji);
-            swapIdxsRows.emplace(ji, l);
-        }else swapIdxsRows.emplace(l,l);
+
+        swapIdxsRows.push_back(ji);
     }
-    // Usually not true so I leave it more clear, not optimized
+
+    std::vector<unsigned int>& ref_swapIdxsCols = n_cols != n_rows ? swapIdxsCols : swapIdxsRows;
+
+    // If the number of columns is not equal to the number of rows, calculate bit-reversal permutations for columns
     if (n_cols != n_rows) {
         for (unsigned int l = 0; l < n_rows; l++) {
             unsigned int ji = 0;
@@ -34,25 +43,24 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
                 ji = (ji << 1) | ((l >> k) & 1U);
             }
             if (ji > l) {
-                swapIdxsCols[l] = ji;
-                swapIdxsCols[ji] = l;
-            }else swapIdxsCols[l] = l;
+                swapIdxsCols.push_back(ji);
+            }
         }
-
-        p_swapIdxsCols = &swapIdxsCols;
-    }else{
-        p_swapIdxsCols = &swapIdxsRows;
     }
 
     
-    //First pass: Apply FFT to each row
+    // First pass: Apply FFT to each row in parallel
     #pragma omp parallel for num_threads(n_threads) firstprivate(n_cols, n_rows, numBits)
     for (unsigned int i = 0; i < n_rows; ++i) {
         std::vector<std::complex<double>> &row_vector = freq_matrix[i];
         row_vector.resize(n_cols);
 
-        // use last iteration to write column vectors and the first to not override input_matrix
-        // s = 1
+        // Apply the row-wise bit-reversal permutation to the input_matrix
+        for (unsigned int j = 0; j < n_cols; ++j)
+            std::swap(input_matrix[i][j],input_matrix[i][swapIdxsRows[j]]);
+
+        // Use the last iteration to compute and store column vectors and the first iteration to avoid overwriting the original input_matrix
+        // Perform FFT for the first stage (s = 1)
         {
             unsigned int m = 1U << 1; 
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
@@ -60,8 +68,8 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
 
                 std::complex<double> w = 1.0;
                 for (unsigned int j = 0; j < m / 2; j++) {
-                    std::complex<double> t = w * static_cast<std::complex<double>>(input_matrix[i][swapIdxsRows[k + j + m / 2]]);
-                    std::complex<double> u = static_cast<std::complex<double>>(input_matrix[i][swapIdxsRows[k + j]]);
+                    std::complex<double> t = w * static_cast<std::complex<double>>(input_matrix[i][k + j + m / 2]);
+                    std::complex<double> u = static_cast<std::complex<double>>(input_matrix[i][k + j]);
                     row_vector[k + j] = u + t;
                     row_vector[k + j + m / 2] = u - t;
                     w *= wm;
@@ -69,16 +77,9 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
             }
         }
         // swap again to restore original input_matrix
-        
-        // for (unsigned int l = 0; l < n_cols; l++) { // **************
-        //     unsigned int ji = 0;
-        //     for (unsigned int k = 0; k < numBits; k++) {
-        //         ji = (ji << 1) | ((l >> k) & 1U);
-        //     }
-        //     if (ji > l) {
-        //         std::swap(input_matrix[i][l], input_matrix[i][ji]);
-        //     }
-        // }
+        for (unsigned int j = 0; j < n_cols; ++j)
+            std::swap(input_matrix[i][j],input_matrix[i][swapIdxsRows[j]]);
+
 
         for (unsigned int s = 2; s < numBits; s++) {
             unsigned int m = 1U << s; 
@@ -95,7 +96,7 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
             }
         }
 
-        // s == numBits
+        // Perform FFT for the last stage (s == numBits)
         {
             unsigned int m = 1U << numBits; 
             std::complex<double> wm = std::exp(-2.0 * M_PI * std::complex<double>(0, 1) / static_cast<double>(m));
@@ -104,8 +105,8 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
                 for (unsigned int j = 0; j < m / 2; j++) {
                     std::complex<double> t = w * row_vector[k + j + m / 2];
                     std::complex<double> u = row_vector[k + j];
-                    input_cols[k + j][(*p_swapIdxsCols)[i]] = u + t;
-                    input_cols[k + j + m / 2][(*p_swapIdxsCols)[i]] = u - t;
+                    input_cols[k + j][i] = u + t;
+                    input_cols[k + j + m / 2][i] = u - t;
                     w *= wm;
                 }
             }
@@ -118,16 +119,10 @@ void ParFFT2D::trasform(std::vector<std::vector<C>>& input_matrix, std::vector<s
     #pragma omp parallel for num_threads(n_threads) firstprivate(n_cols, n_rows, numBits)
     for (unsigned int i = 0; i < n_cols; ++i) {
         std::vector<std::complex<double>> &col_vector = input_cols[i];
-        
-        // for (unsigned int l = 0; l < n_rows; l++){
-        //     unsigned int j = 0;
-        //     for (unsigned int k = 0; k < numBits; k++) {
-        //         j = (j << 1) | ((l >> k) & 1U);
-        //     }
-        //     if (j > l) {
-        //         std::swap(col_vector[l], col_vector[j]);
-        //     }
-        // }
+
+        for (unsigned int j = 0; j < n_rows; ++j)
+            std::swap(col_vector[j],col_vector[ref_swapIdxsCols[j]]);
+            
 
         for (unsigned int s = 1; s < numBits; s++) {
             unsigned int m = 1U << s; 
