@@ -36,7 +36,8 @@ then, will be created two executables: **test_library.exe** has been created in 
 and then:
 
 ```    
-./test.exe -N [number that specifies the vector length] -iTT [number that specifies how many iterations you want perform for each class]     ```
+./test.exe -N [number that specifies the vector length] -iTT [number that specifies how many iterations you want perform for each class]
+```     
 
 Obviously, vector length provided must be a number power of 2 to perform FFT.
 
@@ -120,7 +121,7 @@ and then:
 ./main.exe  
 ```
 
-It's important to set the exact number of channel to use in **parameters** file in **inc** folder: NUM_CHANNELS = 1 for black&white, NUM_CHANNELS = 3 for color images.
+It's important to set the exact number of channel to use in **parameters** file in **inc** folder: **NUM_CHANNELS = 1** for black&white, **NUM_CHANNELS = 3** for color images.
 
 
 # Conclusions and results
