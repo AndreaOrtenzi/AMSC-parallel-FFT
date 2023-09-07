@@ -117,7 +117,7 @@ void Image::transform(){
 // Inverse Transform every MCU in the vector imageMCUs:
 // Throws:
 //   - Throws an exception (int value 2) if there are not frequency values to iTransform.
-void Image::iTrasform() {
+void Image::iTransform() {
     if (!hasFreqValues) {
         std::cerr << "There are no frequency values available." << std::endl;
         throw 2;
@@ -167,10 +167,13 @@ void Image::readCompressed(){
         }
     }
 
-    unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
+    unsigned int numMCUsWidth  = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
     unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
+    unsigned int numMCU        = numMCUsWidth * numMCUsHeight;
 
+    std::cout << " \tCompleted: 0 / " << numMCU;
     unsigned int i = 0; 
+
     for (unsigned int row = 0; row < numMCUsHeight; row++) {
             for (unsigned int col = 0; col < numMCUsWidth; col++) {
                 unsigned int startX = col * MCU_SIZE;
@@ -180,12 +183,14 @@ void Image::readCompressed(){
                 MinimumCodedUnit mcu(imgWidth, imgHeight, startY, startX);
                 mcu.readCompressedFromFile(outputFolderPath, i);
 
+                std::cout << " \r \tCompleted: " << i + 1 << " / " << numMCU;
+
                 imageMCUs.push_back(mcu);
                 i++;
             }
         }     
     hasFreqValues = true;
-
+    std::cout << std::endl;
     std::cout << "**** Finished Reading Compressed ****" << std::endl;
 
 }

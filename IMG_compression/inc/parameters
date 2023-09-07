@@ -2,7 +2,7 @@
 #define MCU_SIZE 8 // power of 2
 #endif
 #ifndef NUM_CHANNELS
-#define NUM_CHANNELS 3
+#define NUM_CHANNELS 1
 #endif
 #ifndef QUALITY // from 0 to 100 for function: int stbi_write_jpg(char const *filename, int w, int h, int comp, const void *data, int quality);
 #define QUALITY 100

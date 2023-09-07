@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <algorithm> // to use std::for_each
+#include <execution> // to use for each parallelization
 #include <filesystem> // to create directory compressed_images
 #include "parameters"
 

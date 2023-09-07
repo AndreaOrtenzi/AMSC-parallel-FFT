@@ -1,6 +1,6 @@
 #include "../inc/MinimumCodedUnit.hpp"
     
-
+// Method to read image data from a buffer
 void MinimumCodedUnit::readImage(unsigned char* bufferPointer){
     
     // read data and save them in mcuValues matrix
@@ -8,8 +8,9 @@ void MinimumCodedUnit::readImage(unsigned char* bufferPointer){
 
         for (unsigned int c = 0; c < dataWidth; ++c){
             
-            // it should be unrolled
+            // Unroll the loop for the number of channels
             for (unsigned int j = 0; j < NUM_CHANNELS; ++j){
+                // Calculate the index and store the value in mcuValues
                 mcuValues[j][r][c] = bufferPointer[imgWidth*r*NUM_CHANNELS + c*NUM_CHANNELS + j];
             }
         }
@@ -20,16 +21,18 @@ void MinimumCodedUnit::readImage(unsigned char* bufferPointer){
             }
         }
     }
+    // Copy the last row's values to fill remaining rows up to MCU_SIZE
     for (unsigned int r = dataHeight; r < MCU_SIZE; ++r) {        
         for (unsigned int j = 0; j < NUM_CHANNELS; ++j){
             std::copy(&mcuValues[j][r-1][0],&mcuValues[j][r-1][MCU_SIZE],&mcuValues[j][r][0]);
         }
     }
 
+    // Set the flag indicating that pixel values have been read
     havePixelsValues = true;
 }
 
-
+// Method to perform transformations (e.g., FFT, Subtract128, quantization)
 void MinimumCodedUnit::transform(){
 
     if (!havePixelsValues){
@@ -42,16 +45,18 @@ void MinimumCodedUnit::transform(){
     for (unsigned int i = 0; i < NUM_CHANNELS*MCU_SIZE*MCU_SIZE; ++i)
         p[i]-=128;
 
-    
     // Apply FFT2D and quantizate the norm by Q
     FFT2DwithQuantization();
 
+    // Set the flag indicating that frequency values have been calculated
     haveFreqValues = true;
 }
+// Function to calculate the number of bits needed to represent a value
 constexpr unsigned numberOfBits(unsigned x) {
     return x < 2 ? x : 1+numberOfBits(x >> 1);
 }
 
+// Method to perform inverse transformations
 void MinimumCodedUnit::iTransform(){
 
     if (!haveFreqValues){
@@ -189,6 +194,7 @@ void MinimumCodedUnit::iTransform(){
     
 }
 
+// Method to write compressed data to files
 void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuIdx){
 
     if (!haveFreqValues){
@@ -222,6 +228,7 @@ void MinimumCodedUnit::writeCompressedOnFile(std::string &outputFolder, int mcuI
     }  
 }
 
+// Method to read compressed data from files
 void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuIdx){
 
     std::string matricesFilename = inputFolder + "/mcu_" + std::to_string(mcuIdx) + "_channel_";
@@ -248,11 +255,11 @@ void MinimumCodedUnit::readCompressedFromFile(std::string &inputFolder, int mcuI
         }
         
     }
-
+    // Set the flag indicating that frequency values have been restored
     haveFreqValues = true;
-    
 }
 
+// Utility function for casting between numeric types
 template <typename RT,typename PT>
 inline RT my_cast(PT val){
     if (std::is_floating_point<RT>::value) {
@@ -261,6 +268,7 @@ inline RT my_cast(PT val){
     return static_cast<RT> (val+0.5);
 }
 
+// Method to perform 2D FFT with quantization
 void MinimumCodedUnit::FFT2DwithQuantization(){
         
     // &mcuValues[w][0][0],&normFreq[w][0][0],&phaseFreq[w][0][0]
@@ -274,6 +282,7 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
         for (unsigned int i = 0; i < MCU_SIZE; ++i) {
             std::complex<double> row_vector[MCU_SIZE];
             
+            // Bit-reversal
             for (unsigned int l = 0; l < MCU_SIZE; l++) { // **************
                 unsigned int ji = 0;
                 for (unsigned int k = 0; k < numBits; k++) {
@@ -397,8 +406,9 @@ void MinimumCodedUnit::FFT2DwithQuantization(){
     } // for channels 
 }
 
+// Method to write the decompressed image data to a buffer
 void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){
-
+    // Check if pixel values are available:
     if (!havePixelsValues){
         std::cerr << "There are not pixels to write!" << std::endl;
         throw 1;
@@ -408,8 +418,9 @@ void MinimumCodedUnit::writeImage(unsigned char* bufferPointer){
         for (unsigned int j = 0; j < dataWidth; ++j)
         {
             for (unsigned int channel = 0; channel < NUM_CHANNELS; channel++)
-            {
-                int pixelValue = mcuValuesRestored[channel][i][j]; // TODO delete restored, use only one matrix
+            {   
+                int pixelValue = mcuValuesRestored[channel][i][j];
+                // Calculate the buffer index for the current pixel: 
                 bufferPointer[imgWidth * i * NUM_CHANNELS + j * NUM_CHANNELS + channel] = static_cast<unsigned char>(pixelValue);
             }
         }
