@@ -23,7 +23,7 @@ protected:
     void recursiveFFT(std::complex<real> x[], const unsigned int n) override;
 
 protected:
-    static bool isRecursive;
+    static bool isRecursive; // Static variable to control the FFT method (iterative or recursive)
 };
 
 #endif // PARALLEL_FFT_HPP
