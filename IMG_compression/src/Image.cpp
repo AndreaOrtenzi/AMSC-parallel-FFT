@@ -24,7 +24,6 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
         throw 1;
     }
 
-    // Call to the right function:
     if (isInputCompressed) {
         readCompressed();
     } else {
@@ -37,6 +36,14 @@ Image::Image(std::string jpegImgsFolderPath_, std::string encodedFolderPath_, st
     }
 }
 
+// Read the image data from the specified file and create Minimum Coded Units (MCUs).
+// The method reads the image pixel data, calculates the number of MCUs needed to cover
+// the image, and creates MCUs from the pixel data. Each MCU corresponds to a block of 
+// MCU_SIZE x MCU_SIZE pixels in the image.
+// Parameters:
+//   None
+// Throws:
+//   - Throws an exception (int value 1) if an error occurs during image reading.
 void Image::readImage(){
     int numChannels = NUM_CHANNELS;
     std::string imagePath = jpegImgsFolderPath + imgName + ".jpg";
@@ -47,26 +54,27 @@ void Image::readImage(){
         throw 1;
     }
     std::cout << "**** Starting Reading Image  ****" << std::endl;
-    // Calculate number of MCUs in width and in height:
+    
+    // Calculate the number of MCUs in width and height:
     unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
     unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
 
-    // Create MCUs from image's pixel:
+    // Create MCUs from the image's pixel data:
     for (unsigned int row = 0; row < numMCUsHeight; row++) {
         for (unsigned int col = 0; col < numMCUsWidth; col++) {
             unsigned int startX = col * MCU_SIZE;
             unsigned int startY = row * MCU_SIZE;
 
-            // Let's create a MCU from pixel in the specified area:
+            // Create an MCU from the pixels in the specified area:
             MinimumCodedUnit mcu(imgWidth, imgHeight, startY, startX);
             mcu.readImage(&imageData[(startY * imgWidth + startX) * numChannels]);
 
-            // Add the new unit to MCUs' vector of image:
+            // Add the new MCU to the image's vector of MCUs:
             imageMCUs.push_back(mcu);
         }
     }
 
-    // Free the memory used for image: 
+    // Free the memory used for the image data: 
     stbi_image_free(imageData);
 
     std::cout << "**** Read Image Finished ****" << std::endl;
@@ -74,57 +82,72 @@ void Image::readImage(){
     hasPixelsValues = true;
 }
 
-// Trasform every MCU in the vector imageMCUs: 
-void Image::trasform(){
+
+// Apply the FFT2D transformation to each Minimum Coded Unit (MCU) in the image.
+// This method iterates through the vector of MCUs and applies the FFT2D transformation
+// to each MCU using a lambda function. Parallel execution is enabled for better efficiency.
+// Throws:
+//   - Throws an exception (int value 1) if there are not pixel values to transform.
+void Image::transform(){
 
     std::cout << "**** Starting FFT ****" << std::endl;
 
+    // Check if pixel values are available in the MCUs:
     if (!hasPixelsValues){
-        std::cerr << "There are not pixels values here!" << std::endl;
+        std::cerr << "There are no pixel values available." << std::endl;
         throw 1;
     }
 
-    // Define a lambda function to apply FFT2D for each MCU: [] --> captures nothing
+    // Define a lambda function to apply transformation for each MCU:
     auto apply_FFT2D = [](MinimumCodedUnit &mcu) {
-        mcu.transform(); // call to trasform method of MinimumCodeUnit
+        mcu.transform(); // Call the transform method of MinimumCodeUnit
     };
 
-    // Use of std::for_each to apply lambda function to every MCU in the vector:
-    std::for_each(imageMCUs.begin(), imageMCUs.end(), apply_FFT2D);
+    // Use std::execution::par from c++20 to parallelize the code
+    std::for_each(std::execution::par, imageMCUs.begin(), imageMCUs.end(), apply_FFT2D);
 
+    // Set the flag to indicate that frequency values are now available:
     hasFreqValues = true;
 
     std::cout << "**** Finished FFT ****" << std::endl;
 }
 
-//Inverse Trasform every MCU in the vector imageMCUs:
-void Image::iTrasform(){
 
-    if (!hasFreqValues){
-        std::cerr << "There are not frequency values here!" << std::endl;
+
+// Inverse Transform every MCU in the vector imageMCUs:
+// Throws:
+//   - Throws an exception (int value 2) if there are not frequency values to iTransform.
+void Image::iTrasform() {
+    if (!hasFreqValues) {
+        std::cerr << "There are no frequency values available." << std::endl;
         throw 2;
     }
 
     std::cout << "**** Starting iFFT ****" << std::endl;
-    
-    // At the same way for trasform method, define a lambda function:
-    auto apply_iFFT2D  = [](MinimumCodedUnit &mcu) {
-        mcu.iTransform(); // call to iTrasform method of MinimumCodeUnit
+
+    // Define a lambda function to apply the iFFT2D for each MCU:
+    auto apply_iFFT2D = [](MinimumCodedUnit &mcu) {
+        mcu.iTransform(); // Call the iTransform method of MinimumCodedUnit to perform the inverse FFT.
     };
 
-    // For each MCU apply the lambda function just definied: 
-    std::for_each(imageMCUs.begin(), imageMCUs.end(), apply_iFFT2D);
+    // For each MCU, apply the lambda function defined above:
+    std::for_each(std::execution::par, imageMCUs.begin(), imageMCUs.end(), apply_iFFT2D);
 
     hasPixelsValues = true;
 
     std::cout << "**** iFFT finished ****" << std::endl;
 }
 
+// Private function to read compressed data from encodedFolderPath/imgName
+// It's called in the constructor only if isInputCompressed == true
+// Throws:
+//   - Throws an exception (int value 5) if an error occurs during metadata file reading.
 void Image::readCompressed(){
 
     std::string outputFolderPath = encodedFolderPath + imgName;
     std::cout << "**** Starting Reading Compressed ****" << std::endl;
 
+    // Read imgWidth and imgHeight from the metadata file
     {
         std::string inFile = outputFolderPath + "/metadata.txt";
         std::ifstream rfile(inFile);
@@ -153,11 +176,10 @@ void Image::readCompressed(){
                 unsigned int startX = col * MCU_SIZE;
                 unsigned int startY = row * MCU_SIZE;
 
-                // Let's create a MCU from pixel in the specified area:
+                // Create an mcu that will read the files numbered with i
                 MinimumCodedUnit mcu(imgWidth, imgHeight, startY, startX);
                 mcu.readCompressedFromFile(outputFolderPath, i);
 
-                // Add the new unit to MCUs' vector of image:
                 imageMCUs.push_back(mcu);
                 i++;
             }
@@ -168,21 +190,25 @@ void Image::readCompressed(){
 
 }
 
+// Write the frequency values of the image to compressed files.
+// Throws:
+//   - Throws an exception (int value 2) if there are not frequency values to iTransform.
 void Image::writeCompressed() {
-
-    if (!hasFreqValues){
-        std::cerr << "There are not frequency values to write here!" << std::endl;
-        throw 2;
+    // Check if frequency values are available for writing.
+    if (!hasFreqValues) {
+        std::cerr << "There are no frequency values to write here!" << std::endl;
+        throw 2; // Throw an exception to indicate the absence of frequency values.
     }
 
+    // Define the output folder path for storing compressed data.
     std::string outputFolderPath = encodedFolderPath + imgName;
 
-    // If directory doesn't exist, create it: 
+    // If the output directory doesn't exist, create it.
     if (!std::filesystem::exists(outputFolderPath)) {
         std::filesystem::create_directory(outputFolderPath);
     }
 
-    // Write a file with the metadata of the image:
+    // Write image width, height, and the number of MCUs to the metadata file.
     {
         std::string outFile = outputFolderPath + "/metadata.txt";
         std::ofstream wfile(outFile);
@@ -191,44 +217,54 @@ void Image::writeCompressed() {
         wfile << std::to_string(imgHeight) << std::endl;
         wfile << std::to_string(imageMCUs.size()) << std::endl;
     }
+
     std::cout << "**** Starting to write all the MCUs ****" << std::endl;
     std::cout << " \tCompleted: 0 / " << imageMCUs.size();
-    for ( unsigned int i= 0; i< imageMCUs.size(); ++i){
+
+    // Iterate through each MCU and call writeCompressedOnFile to save their frequency values to files.
+    for (unsigned int i = 0; i < imageMCUs.size(); ++i) {
         imageMCUs[i].writeCompressedOnFile(outputFolderPath, i);
-        std::cout << " \r \tCompleted: " << i+1 << " / " << imageMCUs.size();
+
+        std::cout << " \r \tCompleted: " << i + 1 << " / " << imageMCUs.size();
     }
+
     std::cout << std::endl;
 }
 
-void Image::writeImage(){
 
-    if (!hasPixelsValues){
-        std::cerr << "There are not pixel values to write here!" << std::endl;
+// Write the restored image using pixel values from imageMCUs to a JPEG file.
+// Throws:
+//   - Throws an exception (int value 2) if there are not frequency values to iTransform.
+void Image::writeImage() {
+    // Check if pixel values are available
+    if (!hasPixelsValues) {
+        std::cerr << "There are no pixel values to write here!" << std::endl;
         throw 2;
     }
 
-    // Create a byte array for the final image:
+    // Create a byte array to store the final image data
     std::vector<unsigned char> imageBuffer(imgWidth * imgHeight * NUM_CHANNELS);
 
-    // Converts the restored value arrays to a byte array for the image:
-    // for (unsigned int mcuRow = 0; mcuRow < imgHeight / MCU_SIZE; mcuRow++) {
-    //     for (unsigned int mcuCol = 0; mcuCol < imgWidth / MCU_SIZE; mcuCol++) {
-            
+    // Calculate the number of MCUs in width and height
     unsigned int numMCUsWidth = (imgWidth + MCU_SIZE - 1) / MCU_SIZE;
     unsigned int numMCUsHeight = (imgHeight + MCU_SIZE - 1) / MCU_SIZE;
 
+    // Iterate through MCUs and assemble the pixel data into the imageBuffer
     for (unsigned int row = 0; row < numMCUsHeight; row++) {
         for (unsigned int col = 0; col < numMCUsWidth; col++) {
+            // Calculate the starting position of the MCU
             unsigned int startX = col * MCU_SIZE;
             unsigned int startY = row * MCU_SIZE;
             unsigned int mcuIdx = row * (imgWidth / MCU_SIZE) + col;
+
             MinimumCodedUnit& mcu = imageMCUs[mcuIdx];
 
+            // Write the pixel data of the MCU to the imageBuffer
             mcu.writeImage(&imageBuffer[(startY * imgWidth + startX) * NUM_CHANNELS]);
-
         }
     }
 
-    // stb_image_write to write finale JPEG image:
-    stbi_write_jpg( (jpegImgsFolderPath + imgName + "restored.jpg").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
+    // Use stb_image_write to save the final JPEG image
+    stbi_write_jpg((jpegImgsFolderPath + imgName + "restored.jpg").c_str(), imgWidth, imgHeight, NUM_CHANNELS, imageBuffer.data(), QUALITY);
 }
+
