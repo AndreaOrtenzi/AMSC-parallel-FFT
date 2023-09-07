@@ -24,13 +24,12 @@ The folder includes an **inc** folder containing all the classes used to impleme
 In order to compile we have provided a makefile in the folder.
 First, run:
 
-```    
-make     
 ```
+make
+```     
 
 then, will be created two executables: **test_library.exe** has been created in order to demonstrate the usage of the FFT1D as a library, **test.exe** . At this point, you can run:
-
-``` 
+```
 ./test_library.exe  
 ```
 
