@@ -8,7 +8,6 @@
 #include "parameters"
 
 #include "MinimumCodedUnit.hpp"
-// #include "../../Compression/inc/Compression.hpp"
 #include "../../lib/VectorInFiles.hpp"
 
 using namespace std;
@@ -23,7 +22,6 @@ public:
     // usa stb_image_write:
     void writeCompressed(); 
     void writeImage(); 
-    
 
 private:
     std::string jpegImgsFolderPath;
@@ -38,9 +36,5 @@ private:
 
     // Image's MCUs vector
     std::vector<MinimumCodedUnit> imageMCUs;
-
-    Compression<phase_type> phase_comp;
-    Compression<norm_type> norm_comp;
-
 
 };
