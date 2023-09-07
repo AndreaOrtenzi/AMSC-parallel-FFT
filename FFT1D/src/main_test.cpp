@@ -64,7 +64,8 @@
 
 using namespace std;
 
-void DFT(complex<Real> x[], const unsigned int n){
+// Function to perform the Discrete Fourier Transform
+void DFT(complex<Real> x[], const unsigned int n) {
     complex<Real> frequencyValues[n];
 
     for (unsigned int k = 0; k < n; ++k) {
@@ -79,9 +80,9 @@ void DFT(complex<Real> x[], const unsigned int n){
     for (unsigned int k = 0; k < n; ++k) {
         x[k] = frequencyValues[k];
     }
-
 }
 
+// Function to check the correctness of FFT results:
 #if CHECK_CORRECTNESS
 int checkCorrectness(const string implemName, const vector<complex<Real>> &correct, const vector<complex<Real>> &toCheck) {
     bool isCorrect = true;
@@ -89,80 +90,74 @@ int checkCorrectness(const string implemName, const vector<complex<Real>> &corre
     int pos = 0;
 
     auto j = toCheck.begin();
-    for ( auto i = correct.begin(); i!=correct.end(); ++i) {
-        if ( (i->imag()-j->imag()) > eps || (i->real()-j->real()) > eps) {
+    for ( auto i = correct.begin(); i != correct.end(); ++i) {
+        if ((i->imag() - j->imag()) > eps || (i->real() - j->real()) > eps) {
             std::cout << "Problem with element at index " << pos << ": " << *j << ", It should be: " << *i << endl;
             isCorrect = false;
         }
         pos++;
-        if (j!=toCheck.end())
+        if (j != toCheck.end())
             j++;
     }
     if (!isCorrect) {
         std::cout << "WRONG TRANSFORMATION!" << endl;
         return 1;
     }
-    std::cout << "Correct transformation " << implemName << "!"<< endl;
+    std::cout << "Correct transformation " << implemName << "!" << endl;
     return 0;
 }
 #endif
 
+// Function to fill an array with random complex values:
 void fillArray(vector<complex<Real>> &toFill, unsigned int seed = 10){
     srand(time(nullptr)*seed*0.1);
     for (std::vector<complex<Real>>::iterator it = toFill.begin(); it != toFill.end(); ++it){
-        // complex<Real> temp = complex<Real>(rand() * 1.0/ RAND_MAX, rand() * 1.0/ RAND_MAX);
-        *it = complex<Real>((int) (MAX_ARRAY_VALUES/ RAND_MAX * rand()),(int) (MAX_ARRAY_VALUES / RAND_MAX * rand()));
-
+        *it = complex<Real>((int) (MAX_ARRAY_VALUES/ RAND_MAX * rand()), (int) (MAX_ARRAY_VALUES / RAND_MAX * rand()));
     }
-        
 }
 
 int main(int argc, char *argv[]) {
     GetPot cmdLine(argc, argv);
 
-    // Set testing parameters
+    // Set testing parameters based on command line arguments or defaults:
     const unsigned int vectorLength = cmdLine.follow(ARRAY_LENGTH, "-N");
     const unsigned int iterToTime = cmdLine.follow(NUM_ITER_TO_TIME, "-iTT");
-    
-    
 
-    // set all it's needed to time the execution
+    // Configure timing options:
     #if TIME_IMPL
     using clock = std::chrono::steady_clock;
-	using unitOfTime = std::chrono::duration<double, std::milli>;
+    using unitOfTime = std::chrono::duration<double, std::milli>;
     const string unitTimeStr = "ms";
 
     chrono::time_point<clock> begin;
     double total = 0.0;
     #endif
-    
-    
-    // create the array to convert with FFT
+
+    // Create the array to convert with FFT:
     vector<complex<Real>> xSpace(vectorLength);
     fillArray(xSpace);
     vector<complex<Real>> xFreq(xSpace);
     const vector<complex<Real>> empty_vec(vectorLength);
-    
+
+    // Initialize MPI environment if the parallel MPI implementation is enabled.
     #if PAR_MPI_IMPL
-        int world_size = 1, world_rank = 0;
+    int world_size = 1, world_rank = 0;
 
-        MPI_Init(NULL, NULL);      // initialize MPI environment
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-        if (world_rank == 0) {
-    #endif  // PAR_MPI_IMPL
-        
-    
+    MPI_Init(NULL, NULL); // Initialize MPI environment
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    if (world_rank == 0) {
+    #endif
 
-    #if CHECK_CORRECTNESS    
-    // run the recursive version
+    #if CHECK_CORRECTNESS
+    // Run the DFT for correctness comparison:
     {
         unsigned int i = 0;
         #if TIME_IMPL
         for(i = 0; i < iterToTime; i++ ){            
             begin = clock::now();
         #endif
-        DFT(xFreq.data(),xFreq.size());
+        DFT(xFreq.data(), xFreq.size());
 
         #if TIME_IMPL
             double elapsed = chrono::duration_cast<unitOfTime>(clock::now() - begin).count();
@@ -170,7 +165,7 @@ int main(int argc, char *argv[]) {
         #endif
         
         #if TIME_IMPL
-            // create a new test vector every iteration
+            // Create a new test vector every iteration:
             fillArray(xSpace,i+1);
             xFreq = xSpace;
         }    
@@ -179,9 +174,7 @@ int main(int argc, char *argv[]) {
     }    
     #endif
 
-    // run my implementations:
-
-    // sequential implementation:  
+    // Sequential implementation.
     #if SEQ_IMPL
     {
         const string implementationName = "Sequential implementation";
@@ -225,9 +218,7 @@ int main(int argc, char *argv[]) {
     }
     #endif // SEQ_IMPL
 
-    
-    
-    // OpenMP implementation: 
+    // OpenMP implementation.
     #if PAR_OMP_IMPL
     {
         const string implementationName = "OpenMP implementation";
@@ -260,7 +251,6 @@ int main(int argc, char *argv[]) {
             // Check the inverse:
             fft.iTransform();
             checkCorrectness(implementationName + " inverse", xSpace, fft.getSpatialValues());
-
         #endif
         
         #if TIME_IMPL
@@ -273,7 +263,7 @@ int main(int argc, char *argv[]) {
     }
     #endif // PAR_OMP_IMPL
 
-    // MPI implementation: 
+    // MPI implementation.
     #if PAR_MPI_IMPL
     } // if (world_rank == 0) {
     {
@@ -323,7 +313,7 @@ int main(int argc, char *argv[]) {
             std::cout << implementationName << " took on average: " << total/iterToTime << unitTimeStr << endl;
         #endif
 
-        MPI_Finalize(); // finish MPI environment
+        MPI_Finalize(); // Finish MPI environment
 
         if (world_rank==0)
             std::cout << "--------------------------------\n" << endl;

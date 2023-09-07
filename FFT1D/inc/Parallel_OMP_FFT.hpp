@@ -10,8 +10,10 @@
 
 class Parallel_OMP_FFT : public AbstractFFT {
 public:
-    using AbstractFFT::AbstractFFT; // use AbstractFFT constructors
-    // use AbstractFFT overloaded methods, overloading hides the parent's methods
+    // Inherit constructors from AbstractFFT
+    using AbstractFFT::AbstractFFT;
+
+    // Use AbstractFFT overloaded methods, overloading hides the parent's methods
     using AbstractFFT::transform;
     using AbstractFFT::iTransform;
 
@@ -23,7 +25,7 @@ protected:
     void recursiveFFT(std::complex<real> x[], const unsigned int n) override;
 
 private:
-    static bool isRecursive;
+    static bool isRecursive; // Static variable to control the FFT method (iterative or recursive)
 };
 
 #endif // PARALLEL_OMP_FFT_HPP

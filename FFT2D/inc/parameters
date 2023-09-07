@@ -12,7 +12,7 @@
 
 #if TIME_IMPL
 #ifndef NUM_ITER_TO_TIME
-#define NUM_ITER_TO_TIME 100
+#define NUM_ITER_TO_TIME 20
 #endif
 #else
 #define NUM_ITER_TO_TIME 1

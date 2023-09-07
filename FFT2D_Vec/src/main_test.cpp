@@ -149,6 +149,10 @@ void printInt(const std::vector<std::vector<T>> &vec, const std::string &name = 
     }
 }
 
+// Function to check if is a number is a power of 2
+bool isPowerOf2(unsigned int num) {
+    return (num != 0) && ((num & (num - 1)) == 0);
+}
 
 int main(int argc, char *argv[]) {
     // Parse command-line arguments
@@ -160,6 +164,12 @@ int main(int argc, char *argv[]) {
     const unsigned int numThreads = cmdLine.follow(NUM_THREADS == 0 ? \
         omp_get_max_threads() > rowlength ? rowlength : omp_get_max_threads() \
         : NUM_THREADS, "-nTH");
+    
+    // Check input row_length:
+    if (!isPowerOf2(rowlength)) {
+        std::cerr << "Error: row length must be a power of 2." << std::endl;
+        return 1;
+    }
 
     
     std::cout << "---------------- FFT2D on matrices "<< rowlength << "x" << rowlength <<" ----------------" << std::endl;

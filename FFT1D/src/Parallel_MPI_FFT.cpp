@@ -4,63 +4,65 @@
 bool Parallel_MPI_FFT::isRecursive = false;
 unsigned int Parallel_MPI_FFT::n_splitting = 0;
 
+// Perform the Fourier transform using MPI
 void Parallel_MPI_FFT::transform(const std::vector<std::complex<real>>& sValues) {
     // Perform the Fourier transform on the spatial values and store the result in the frequency values
     frequencyValues.resize(N);
     
     frequencyValues = sValues;    
+
+    // Check if this rank will participate in the computation:
     if (N <= 1 || world_rank >= world_size){
         std::cout << "Rank " << world_rank << " will not help" << std::endl;
         return;
     }
 
     std::complex<real> splitted_array[world_size][n_splitting];
-    
+
     if (world_rank == 0){
-        // split initial array
+        // Split the initial array among ranks:
         for (unsigned int i = 0; i < N; i++){
-            splitted_array[i%world_size][i/world_size] = sValues[i];
-            // splitted_array[i%world_size][i/world_size] = frequencyValues[i];
+            splitted_array[i % world_size][i / world_size] = sValues[i];
         }
     }
 
-    // receive array from rank 0
+    // Scatter the data to all ranks:
     if (typeid(real) == typeid(double))
         MPI_Scatter(&splitted_array[0][0], n_splitting, MPI_DOUBLE_COMPLEX, &splitted_array[world_rank][0],
             n_splitting, MPI_DOUBLE_COMPLEX, 0, world_size_comm);
     else MPI_Scatter(&splitted_array[0][0], n_splitting, MPI_COMPLEX, &splitted_array[world_rank][0],
             n_splitting, MPI_COMPLEX, 0, world_size_comm);
 
-    // compute FFT on this section
+    // Compute FFT on this section:
     if (isRecursive){
-        if(world_rank==0)
+        if(world_rank == 0)
             std::cout << "--start recursive imp-- world_size:" << world_size << " n_splitting: " << n_splitting << std::endl;
 
         if (world_size == 1) {
-            recursiveFFT(frequencyValues.data(),n_splitting);
-        }else recursiveFFT(&splitted_array[world_rank][0],n_splitting);
-        
+            recursiveFFT(frequencyValues.data(), n_splitting);
+        } else {
+            recursiveFFT(&splitted_array[world_rank][0], n_splitting);
+        }
     } else {
-        if(world_rank==0)
-            std::cout<< "--start iterative imp--" << std::endl;
-        
-        if (world_size == 1) {
-            iterativeFFT(frequencyValues.data(),frequencyValues.size());
-        }else iterativeFFT(&splitted_array[world_rank][0],n_splitting);   
-    }
-    
-    
+        if(world_rank == 0)
+            std::cout << "--start iterative imp--" << std::endl;
 
-    // send processed array to rank 0
+        if (world_size == 1) {
+            iterativeFFT(frequencyValues.data(), frequencyValues.size());
+        } else {
+            iterativeFFT(&splitted_array[world_rank][0], n_splitting);
+        }
+    }
+
+    // Gather the processed data back to rank 0:
     if (typeid(real) == typeid(double))
         MPI_Gather(&splitted_array[world_rank][0], n_splitting, MPI_DOUBLE_COMPLEX, &splitted_array[0][0], n_splitting, MPI_DOUBLE_COMPLEX, 0,
             world_size_comm);
     else MPI_Gather(&splitted_array[world_rank][0], n_splitting, MPI_COMPLEX, &splitted_array[0][0], n_splitting, MPI_COMPLEX, 0,
             world_size_comm);
 
-
     if (world_rank == 0) {
-        // finish to combine the results of the subproblems:
+        // Finish combining the results of the subproblems:
         unsigned int curr_i = 1;
         unsigned int curr_n = n_splitting;
         unsigned int curr_splitting = world_size >> 1; // /2
@@ -77,7 +79,7 @@ void Parallel_MPI_FFT::transform(const std::vector<std::complex<real>>& sValues)
                     if (curr_n != N >> 1) {
                         curr_x[ j*curr_n*curr_splitting + i] = ex_x[j*curr_n + i] + t;
                         curr_x[ j*curr_n*curr_splitting + i + curr_n] = ex_x[j*curr_n + i] - t;
-                    }else{
+                    } else {
                         std::complex<real> *fqV = frequencyValues.data();
                         fqV[ curr_splitting*j*curr_n + i] = ex_x[ j*curr_n + i] + t;
                         fqV[ curr_splitting*j*curr_n + i + curr_n] = ex_x[ j*curr_n + i] - t;
@@ -119,7 +121,6 @@ void Parallel_MPI_FFT::recursiveFFT(std::complex<real> x[], const unsigned int n
     }
 }
 
-
 // A parallel implementation of the FFT iterative method using MPI.
 void Parallel_MPI_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
@@ -149,9 +150,9 @@ void Parallel_MPI_FFT::iterativeFFT(std::complex<real> x[], const unsigned int n
     }
 }
 
-
+// Perform the inverse Fourier transform using MPI
 void Parallel_MPI_FFT::iTransform(const std::vector<std::complex<real>>& fValues) {
-    //Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
+    // Perform the inverse Fourier transform on the frequency values and store the result in the spatial values
     spatialValues.resize(N);
 
     std::vector<std::complex<real>> freqVec = fValues;
@@ -159,13 +160,13 @@ void Parallel_MPI_FFT::iTransform(const std::vector<std::complex<real>>& fValues
 
     // Bit reversal:
     for (unsigned int l = 0; l < N; l++) {
-            unsigned int j = 0;
-            for (unsigned int k = 0; k < numBits; k++) {
-                j = (j << 1) | ((l >> k) & 1U);
-            }
-            if (j > l) {
-                std::swap(freqVec[l], freqVec[j]);
-            }
+        unsigned int j = 0;
+        for (unsigned int k = 0; k < numBits; k++) {
+            j = (j << 1) | ((l >> k) & 1U);
+        }
+        if (j > l) {
+            std::swap(freqVec[l], freqVec[j]);
+        }
     }
     
     for (unsigned int s = 1; s <= numBits; s++) {
@@ -183,6 +184,7 @@ void Parallel_MPI_FFT::iTransform(const std::vector<std::complex<real>>& fValues
         }
     }
 
+    // Normalize by dividing by N
     for (unsigned int i = 0; i < N; ++i) {
         spatialValues[i] = freqVec[i] / static_cast<real>(N);
     }   
