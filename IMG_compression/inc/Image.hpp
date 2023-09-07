@@ -9,7 +9,6 @@
 #include "parameters"
 
 #include "MinimumCodedUnit.hpp"
-#include "../../lib/VectorInFiles.hpp"
 
 using namespace std;
 
