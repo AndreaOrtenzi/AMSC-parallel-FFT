@@ -1,5 +1,5 @@
 #ifndef ARRAY_LENGTH
-#define ARRAY_LENGTH 1024
+#define ARRAY_LENGTH 256
 #endif
 #ifndef CHECK_CORRECTNESS
 #define CHECK_CORRECTNESS true
@@ -295,11 +295,11 @@ int main(int argc, char *argv[]) {
         #endif
         
         #if CHECK_CORRECTNESS
+            fft.iTransform();
             if (world_rank==0){
                 DFT(xFreq.data(),xFreq.size());
                 checkCorrectness(implementationName, xFreq, fft.getFrequencyValues());
-                // Check the inverse:
-                fft.iTransform();
+                // Check the inverse:    
                 checkCorrectness(implementationName + " inverse", xSpace, fft.getSpatialValues());
             }
         #endif
