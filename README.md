@@ -65,8 +65,9 @@ then,
 
 ## FFT 2D with vectors of vectors
 
-Explain differences with FFT 2D Eigen.
-Talk about Plot folder and what does it do.
+The folder **FFT2D_Vec** contains the files useful to perform the Fast Fourier Transform on matrices made with std::vector of std::vector.
+This version is very versatile. We chose to make all methods static and templates. In **src** folder you could find the files with the implementations these methods methods and a **main_test.cpp** file for testing.
+To set the parameters you can either use the *parameters* file in the **inc** folder or though command line arguments.
 
 # IMAGE COMPRESSION
 
@@ -124,5 +125,10 @@ and then:
 It's important to set the exact number of channel to use in **parameters** file in **inc** folder: **NUM_CHANNELS = 1** for black&white, **NUM_CHANNELS = 3** for color images.
 
 
+# Plot
+
+We've developed a couple of Gnuplot scripts to compare various versions, and we've also utilized MATLAB for this purpose. Within this folder, you'll exclusively find the Gnuplot scripts. You can execute them by adjusting the parameters in the shell script located at the top.
+
 # Conclusions and results
------
+
+The results achieved during these project have been reported in the PowerPoint presentation *AMSC-FFT-Project.pptx* uploaded in the repository.
