@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdio>
 #include "utils.cu"
 
@@ -64,11 +65,10 @@ __device__ void synch_fft8(cuFloatComplex *data) {
     -----------------------------------------
         Step 2: Iterative FFT Stages
     -----------------------------------------
-    */ 
+    */
+    size_t maskRootsIdx = 0;
     cuFloatComplex &localData = x;
     for (unsigned s = 0; s < numBits; s++) { // Three stages for FFT of size 8
-        unsigned step = 1 << (s+1); // Step size for each butterfly group
-        unsigned halfStep = 1 << (s);
 
         // Synchronize threads before starting the stage
         __syncwarp();
@@ -84,8 +84,21 @@ __device__ void synch_fft8(cuFloatComplex *data) {
         // 8 - to reverse the order of the roots of unity
         // First root is duplicated in the 8th index
         // cuFloatComplex wm = rootsOfUnity[8 - (threadIdx.x % halfStep)*(8/step)];
-        cuFloatComplex wm = rootsOfUnity[(threadIdx.x % halfStep)*(8/step)];
+        // cuFloatComplex wm = rootsOfUnity[(threadIdx.x % halfStep)*(BLOCK_SIZE/step)];// 0-7 % (1,2,4,8) * (8/2 = 4, 2=8/4, 1=8/8)
         
+        // 000 001 010 011 100 101 110 111 -> 000
+        // 000 001 010 011 100 101 110 111 %2 -> look at the last bit
+        // 000 001 000 001 000 001 000 001 %4 -> look at the last 2 bits
+        // 8 >> 1 = 4, 8 >> 2 = 2, 8 >> 3 = 1
+        // *4 = << 2, *2 = << 1, *1 = << 0
+        // numBits - s - 1 = 2, 1, 0
+        
+        size_t rootsOfUnityIdx = threadIdx.x & maskRootsIdx; // threadIdx.x % halfStep
+        rootsOfUnityIdx <<= numBits - s - 1; // *(BLOCK_SIZE/step)
+
+        cuFloatComplex wm = rootsOfUnity[rootsOfUnityIdx];
+        maskRootsIdx += 1<<s;
+
         cuFloatComplex pairedData;
         pairedData.x = __shfl_sync(0xFF, x.x, pairedIdx + maskedLocalIdx);
         pairedData.y = __shfl_sync(0xFF, x.y, pairedIdx + maskedLocalIdx);
