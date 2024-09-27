@@ -172,9 +172,16 @@ int main(int argc, char *argv[]) {
     int batch = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
 
     // Kernel launch parameters
-    dim3 blockDim
-    (BLOCK_SIZE, BLOCK_SIZE);
-    dim3 gridDim(width / BLOCK_SIZE, height / BLOCK_SIZE);
+    // Quantize kernel parameters
+    dim3 blockDimQ(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 gridDimQ(width / BLOCK_SIZE, height / BLOCK_SIZE);
+    // FFT Quantize kernel parameters
+    dim3 blockDimQFFT(BLOCK_SIZE, BLOCK_SIZE);
+    #if VERSION < 4
+    dim3 gridDimQFFT(width / BLOCK_SIZE, height / BLOCK_SIZE);
+    #else
+    dim3 gridDimQFFT(width * height / (BLOCK_SIZE * BLOCK_SIZE * NUM_TILE_X_THREAD_BLOCK));
+    #endif
 
 
     // First iteration is not timed to avoid cold start
@@ -192,14 +199,14 @@ int main(int argc, char *argv[]) {
         #endif
 
         // Reorganize data to have 8x8 submatrices stored contiguously in memory
-        reorganizeSubblocks<<<gridDim, blockDim>>>(d_input, d_cufft_input, width, height, true);
+        reorganizeSubblocks<<<gridDimQ, blockDimQ>>>(d_input, d_cufft_input, width, height, true);
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
         CUDA_CHECK_ERROR(cudaMemcpy(d_input, d_cufft_input, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToDevice));
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
 
         // Launch the custom FFT kernel
         auto start = std::chrono::high_resolution_clock::now();
-        fftQuantizeKernel<<<gridDim, blockDim>>>(d_input, d_output, width, height);
+        fftQuantizeKernel<<<gridDimQFFT, blockDimQFFT>>>(d_input, d_output, width, height);
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
         auto end = std::chrono::high_resolution_clock::now();
 
@@ -212,7 +219,7 @@ int main(int argc, char *argv[]) {
         
         // Reorganize data back to original layout and copy to host
         // TODO: Reorganize data in-place
-        reorganizeSubblocks<<<gridDim, blockDim>>>(d_output, d_input, width, height, false);
+        reorganizeSubblocks<<<gridDimQ, blockDimQ>>>(d_output, d_input, width, height, false);
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
         CUDA_CHECK_ERROR(cudaMemcpy(h_output.get(), d_input, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost));
 
@@ -253,7 +260,7 @@ int main(int argc, char *argv[]) {
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
         
         // Launch quantization kernel
-        quantizeKernel<<<gridDim, blockDim>>>(d_cufft_output, d_cufft_quantized, width, height);
+        quantizeKernel<<<gridDimQ, blockDimQ>>>(d_cufft_output, d_cufft_quantized, width, height);
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
 
         // Error checking for quantization kernel
@@ -270,7 +277,7 @@ int main(int argc, char *argv[]) {
 
         // Reorganize data back to original layout and copy quantized cuFFT results to host
         // TODO: Reorganize data in-place
-        reorganizeSubblocks<<<gridDim, blockDim>>>(d_cufft_quantized, d_cufft_output, width, height, false);
+        reorganizeSubblocks<<<gridDimQ, blockDimQ>>>(d_cufft_quantized, d_cufft_output, width, height, false);
         CUDA_CHECK_ERROR(cudaDeviceSynchronize());
         CUDA_CHECK_ERROR(cudaMemcpy(h_cufft_output.get(), d_cufft_output, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost));
         

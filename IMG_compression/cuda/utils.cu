@@ -7,6 +7,10 @@
 #define LOG_BLOCK_SIZE 3
 #endif
 
+#ifndef NUM_TILE_X_THREAD_BLOCK // Available from version 4
+#define NUM_TILE_X_THREAD_BLOCK 8
+#endif
+
 #ifndef DEBUG
 #define DEBUG true
 #endif
