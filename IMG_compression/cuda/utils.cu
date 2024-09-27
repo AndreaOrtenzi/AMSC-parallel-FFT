@@ -87,20 +87,23 @@ __constant__ float2 rootsOfUnity[9] = {
 // Kernel to quantize cufft results
 __global__ void quantizeKernel(cuFloatComplex *input, cuFloatComplex *output, int width, int height) {
     // Calculate the global indices for the 8x8 subblocks
-    int blockX = blockIdx.x * BLOCK_SIZE;
-    int blockY = blockIdx.y * BLOCK_SIZE;
 
     // Local thread indices
-    int localX = threadIdx.x;
-    int localY = threadIdx.y;
+    // 8x8
+    const int localIdx = threadIdx.y * blockDim.x + threadIdx.x;
 
-    // Global indices
-    int globalX = blockX + localX;
-    int globalY = blockY + localY;
+    // Version with contiguous 8x8 submatrices
+    const int numTilesX = width / BLOCK_SIZE;   // Number of horizontal 8x8 tiles in the matrix
+    const int tileIdx = blockIdx.y * numTilesX + blockIdx.x;  // Flat index of the current tile
+
+    // Compute the offset for the current element within the submatrix
+    const int tileOffset = tileIdx * BLOCK_SIZE * BLOCK_SIZE;
+
+    // Compute the global index in the reorganized layout
+    int globalIdx = tileOffset + localIdx;
 
     // Apply quantization
-    int localIdx = localY * BLOCK_SIZE + localX;
-    output[globalY * width + globalX] = cuCdivf(input[globalY * width + globalX], quantizationMatrix[localIdx]);
+    output[globalIdx] = cuCdivf(input[globalIdx], quantizationMatrix[localIdx]);
 }
 
 #define TILE_DIM 8

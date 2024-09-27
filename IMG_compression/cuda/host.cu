@@ -4,22 +4,32 @@
 #include <iostream>
 #include <memory>
 #include <random>
-#include <cufft.h>
 #include <chrono>
+
+#ifndef USE_CUFFT
+#define USE_CUFFT true
+#endif
 
 #ifndef VERSION
 #define VERSION 1
 #endif
+
 #ifndef iTT
 #define iTT 1
 #endif
 
-#if VERSION == 1
-#include "device_v1.cu"
-#elif VERSION == 2
+#if USE_CUFFT
+#include <cufft.h>
+#endif
+
+#if VERSION == 2
 #include "device_v2.cu"
 #elif VERSION == 3
 #include "device_v3.cu"
+#elif VERSION == 4
+#include "device_v4.cu"
+#else
+#include "device_v1.cu"
 #endif
 
 /*
@@ -42,7 +52,7 @@ void generateData(cuFloatComplex* data, int width, int height) {
             data[i] = make_cuFloatComplex(3., 0.);;
         }
     } else if constexpr (DATA == 123) {
-        std::mt19937 gen(0); // Fixed seed for reproducibility
+        std::mt19937 gen(20); // Fixed seed for reproducibility
         std::uniform_int_distribution<int> dis(0, 255);
 
         for (size_t i = 0; i < matrixSize; ++i) {
@@ -129,6 +139,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Max threads per multiprocessor: " << prop.maxThreadsPerMultiProcessor << std::endl;
     std::cout << "Max threads per block dimension: " << prop.maxThreadsDim[0] << "x" << prop.maxThreadsDim[1] << "x" << prop.maxThreadsDim[2] << std::endl;
     std::cout << "Max grid size: " << prop.maxGridSize[0] << "x" << prop.maxGridSize[1] << "x" << prop.maxGridSize[2] << std::endl;
+    std::cout << "Number of stream multiprocessor: " << prop.multiProcessorCount << std::endl;
     std::cout << "Warp size: " << prop.warpSize << std::endl;
     std::cout << "Max blocks per multiprocessor: " << prop.maxBlocksPerMultiProcessor << std::endl;
     std::cout << "--------------------------\n";
@@ -170,7 +181,7 @@ int main(int argc, char *argv[]) {
     for (unsigned iterToTime = 0; iterToTime < iTT+1; iterToTime++) {
 
         // Initialize random data
-        generateData<2>(h_input.get(), width, height);
+        generateData<123>(h_input.get(), width, height);
         
         // Copy data to device
         CUDA_CHECK_ERROR(cudaMemcpy(d_input, h_input.get(), matrixSize * sizeof(cuFloatComplex), cudaMemcpyHostToDevice));
@@ -214,18 +225,18 @@ int main(int argc, char *argv[]) {
             cuFFT Implementation
         --------------------------
         */
+        #if USE_CUFFT
         // Create cuFFT plan for batched 8x8 FFTs
         cufftHandle plan;
-        int inembed[] = {width, BLOCK_SIZE};
         if (cufftPlanMany(&plan,
                         2,              // Dimensionality of the transform
                         fft_size_2d,       // Size of each dimension
                         NULL,        // If set to NULL all other advanced data layout parameters are ignored.
                         1,           // Distance between two successive input elements in the least significant (i.e., innermost) dimension.
-                        64,         // Distance between the first element of two consecutive signals in a batch of the input data.
+                        0,         // Distance between the first element of two consecutive signals in a batch of the input data.
                         NULL,        // If set to NULL all other advanced data layout parameters are ignored.
                         1,           // ostride
-                        64, // distance between the first element of two consecutive signals in a batch of the output data
+                        0, // distance between the first element of two consecutive signals in a batch of the output data
                         CUFFT_C2C,
                         batch) != CUFFT_SUCCESS) {
             std::cerr << "CUFFT Error: Unable to create plan" << std::endl;
@@ -315,10 +326,14 @@ int main(int argc, char *argv[]) {
                 displayMatrix10x10(h_cufft_output.get(), width, height);
             #endif
         }
+        #endif // if USE_CUFFT
     }
 
     std::cout << "\nCustom FFT Kernel Time: " << custom_fft_time.count()/iTT << " seconds on average over " << iTT << " iterations.\n";
+    
+    #if USE_CUFFT
     std::cout << "cuFFT with Quantization Time: " << cufft_time.count()/iTT << " seconds on average over " << iTT << " iterations.\n";
+    #endif
 
     // Display the resulting matrix
     std::cout << "\nInput Matrix:" << std::endl;
