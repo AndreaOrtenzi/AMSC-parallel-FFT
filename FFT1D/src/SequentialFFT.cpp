@@ -49,6 +49,11 @@ void SequentialFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
     unsigned int numBits = static_cast<unsigned int>(log2(n));
     
     // Bit-reversal:
+    /*
+        Example: n = 8, numBits = 3
+        x = [0, 1, 2, 3, 4, 5, 6, 7]
+        out = [0, 4, 2, 6, 1, 5, 3, 7]
+    */
     for (unsigned int i = 0; i < n; i++) 
     {
         unsigned int j = 0;
@@ -60,9 +65,10 @@ void SequentialFFT::iterativeFFT(std::complex<real> x[], const unsigned int n) {
         }
     }
     for (unsigned int s = 1; s <= numBits; s++) {
-        unsigned int m = 1U << s; 
+        unsigned int m = 1U << s;
         std::complex<real> wm = std::exp(-2.0 * M_PI * std::complex<real>(0, 1) / static_cast<real>(m));
         for (unsigned int k = 0; k < n; k += m) {
+            // w = wm^j
             std::complex<real> w = 1.0;
             for (unsigned int j = 0; j < m / 2; j++) {
                 std::complex<real> t = w * x[k + j + m / 2];
