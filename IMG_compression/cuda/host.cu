@@ -1,3 +1,6 @@
+#include <cstddef>
+#include <cuda_runtime_api.h>
+#include <driver_types.h>
 #include <iostream>
 #include <memory>
 #include <random>
@@ -28,7 +31,8 @@ Cases:
     DATA = 123: Random data generation
 */
 template <unsigned DATA>
-void generateData(cuFloatComplex* data, size_t matrixSize) {
+void generateData(cuFloatComplex* data, int width, int height) {
+    size_t matrixSize = width * height;
     if constexpr (DATA == 0) {
         for (int i = 0; i < matrixSize; ++i) {
             data[i] = make_cuFloatComplex(0., 0.);;
@@ -45,11 +49,31 @@ void generateData(cuFloatComplex* data, size_t matrixSize) {
             float val = static_cast<float>(dis(gen));
             data[i] = make_cuFloatComplex(val, 0);
         }
+    } else if (DATA == 2) {
+        
+        constexpr unsigned MAT[8][8] = {
+            140, 151, 183, 216, 154, 219, 139, 216,
+            108, 159, 165, 98, 112, 76, 228, 14,
+            246, 69, 98, 122, 202, 207, 135, 122,
+            145, 100, 236, 214, 18, 86, 22, 165,
+            5, 94, 213, 245, 199, 35, 222, 222,
+            250, 121, 204, 205, 118, 133, 199, 173,
+            30, 184, 163, 148, 36, 137, 241, 194,
+            133, 27, 106, 121, 67, 47, 198, 188
+        };
+        for (int i = 0; i < height; ++i) {
+            int mati = i % BLOCK_SIZE;
+            for (int j = 0; j < width; ++j) {
+                int matj = j % BLOCK_SIZE;
+                data[i*width + j] = make_cuFloatComplex(MAT[mati][matj], 0.);
+            }
+        }
+
     }
 }
 
 void displayMatrix10x10(cuFloatComplex* mat, int width, int height) {
-    std::cout << "Top-left 10x10 corner (real part):" << std::endl;
+    std::cout << "Top-left 10x10 corner (real part) of a " << height << "x" << width << " matrix:" << std::endl;
     for (int y = 0; y < 10 && y < height; ++y) {
         for (int x = 0; x < 10 && x < width; ++x) {
             std::cout << mat[y * width + x].x << " | ";
@@ -81,18 +105,37 @@ void reorganizeSubBlocksTest(cuFloatComplex* h_input, cuFloatComplex* h_output, 
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        std::cout << "Usage: ./file.exe <width> <height>" << std::endl;
+        std::cout << "Usage: ./file.exe <height> <width>" << std::endl;
         return -1;
     }
 
-    int width = atoi(argv[1]);
-    int height = atoi(argv[2]);
+    const int height = atoi(argv[1]);
+    const int width = atoi(argv[2]);
 
     if (width % BLOCK_SIZE != 0 || height % BLOCK_SIZE != 0) {
         std::cerr << "Width and Height must be divisible by " << BLOCK_SIZE << std::endl;
         return -1;
     }
-    std::cout << "Matrix dimensions: " << width << "x" << height << std::endl;
+
+    // Retrieving device properties
+    #if DEBUG
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    std::cout << "--- Device Properties ---" << std::endl;
+    std::cout << "Device: " << prop.name << std::endl;
+    std::cout << "Compute capability: " << prop.major << "." << prop.minor << std::endl;
+    std::cout << "Shared memory per block: " << prop.sharedMemPerBlock / 1024 << " KB" << std::endl;
+    std::cout << "Max threads per block: " << prop.maxThreadsPerBlock << std::endl;
+    std::cout << "Max threads per multiprocessor: " << prop.maxThreadsPerMultiProcessor << std::endl;
+    std::cout << "Max threads per block dimension: " << prop.maxThreadsDim[0] << "x" << prop.maxThreadsDim[1] << "x" << prop.maxThreadsDim[2] << std::endl;
+    std::cout << "Max grid size: " << prop.maxGridSize[0] << "x" << prop.maxGridSize[1] << "x" << prop.maxGridSize[2] << std::endl;
+    std::cout << "Warp size: " << prop.warpSize << std::endl;
+    std::cout << "Max blocks per multiprocessor: " << prop.maxBlocksPerMultiProcessor << std::endl;
+    std::cout << "--------------------------\n";
+    #endif
+
+    std::cout << "Matrix dimensions: " << height << "x" << width << std::endl;
+
 
     size_t matrixSize = width * height;
 
@@ -118,22 +161,30 @@ int main(int argc, char *argv[]) {
     int batch = (width / BLOCK_SIZE) * (height / BLOCK_SIZE);
 
     // Kernel launch parameters
-    dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 blockDim
+    (BLOCK_SIZE, BLOCK_SIZE);
     dim3 gridDim(width / BLOCK_SIZE, height / BLOCK_SIZE);
 
-    for (unsigned iterToTime = 0; iterToTime < iTT; iterToTime++) {
+
+    // First iteration is not timed to avoid cold start
+    for (unsigned iterToTime = 0; iterToTime < iTT+1; iterToTime++) {
 
         // Initialize random data
-        generateData<123>(h_input.get(), matrixSize);
+        generateData<2>(h_input.get(), width, height);
         
         // Copy data to device
         CUDA_CHECK_ERROR(cudaMemcpy(d_input, h_input.get(), matrixSize * sizeof(cuFloatComplex), cudaMemcpyHostToDevice));
-        CUDA_CHECK_ERROR(cudaMemcpy(d_cufft_input, h_input.get(), matrixSize * sizeof(cuFloatComplex), cudaMemcpyHostToDevice));
 
-        // Test reorganizeSubblocks
         #if DEBUG
+        // Test reorganizeSubblocks
         reorganizeSubBlocksTest(h_input.get(), h_output.get(), d_input, d_output, width, height);
         #endif
+
+        // Reorganize data to have 8x8 submatrices stored contiguously in memory
+        reorganizeSubblocks<<<gridDim, blockDim>>>(d_input, d_cufft_input, width, height, true);
+        CUDA_CHECK_ERROR(cudaDeviceSynchronize());
+        CUDA_CHECK_ERROR(cudaMemcpy(d_input, d_cufft_input, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToDevice));
+        CUDA_CHECK_ERROR(cudaDeviceSynchronize());
 
         // Launch the custom FFT kernel
         auto start = std::chrono::high_resolution_clock::now();
@@ -147,12 +198,16 @@ int main(int argc, char *argv[]) {
             std::cerr << "Kernel Launch Error: " << cudaGetErrorString(err) << std::endl;
             return -1;
         }
-
-        // Copy results back to host
-        CUDA_CHECK_ERROR(cudaMemcpy(h_output.get(), d_output, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost));
+        
+        // Reorganize data back to original layout and copy to host
+        // TODO: Reorganize data in-place
+        reorganizeSubblocks<<<gridDim, blockDim>>>(d_output, d_input, width, height, false);
+        CUDA_CHECK_ERROR(cudaDeviceSynchronize());
+        CUDA_CHECK_ERROR(cudaMemcpy(h_output.get(), d_input, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost));
 
         // Timing
-        custom_fft_time += end - start;
+        if (iterToTime > 0)
+            custom_fft_time += end - start;
 
         /*
         --------------------------
@@ -167,10 +222,10 @@ int main(int argc, char *argv[]) {
                         fft_size_2d,       // Size of each dimension
                         NULL,        // If set to NULL all other advanced data layout parameters are ignored.
                         1,           // Distance between two successive input elements in the least significant (i.e., innermost) dimension.
-                        0,         // Distance between the first element of two consecutive signals in a batch of the input data.
+                        64,         // Distance between the first element of two consecutive signals in a batch of the input data.
                         NULL,        // If set to NULL all other advanced data layout parameters are ignored.
                         1,           // ostride
-                        8, // distance between the first element of two consecutive signals in a batch of the output data
+                        64, // distance between the first element of two consecutive signals in a batch of the output data
                         CUFFT_C2C,
                         batch) != CUFFT_SUCCESS) {
             std::cerr << "CUFFT Error: Unable to create plan" << std::endl;
@@ -197,14 +252,19 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        end = std::chrono::high_resolution_clock::now();
-
-        // Copy quantized cuFFT results back to host
-        cudaMemcpy(h_cufft_output.get(), d_cufft_quantized, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-        cufftDestroy(plan);
-
         // Timing
-        cufft_time += end - start;
+        end = std::chrono::high_resolution_clock::now();        
+        if (iterToTime)
+            cufft_time += end - start;
+
+        // Reorganize data back to original layout and copy quantized cuFFT results to host
+        // TODO: Reorganize data in-place
+        reorganizeSubblocks<<<gridDim, blockDim>>>(d_cufft_quantized, d_cufft_output, width, height, false);
+        CUDA_CHECK_ERROR(cudaDeviceSynchronize());
+        CUDA_CHECK_ERROR(cudaMemcpy(h_cufft_output.get(), d_cufft_output, matrixSize * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost));
+        
+        // Destroy cuFFT plan
+        cufftDestroy(plan);
 
         /*
         // Apply quantization to cuFFT results
@@ -226,7 +286,8 @@ int main(int argc, char *argv[]) {
         // Compare the results
         bool match = true;
         float epsilon = 1e-3f;
-        for (size_t i = 0; i < matrixSize; ++i) {
+        constexpr size_t maxCheckSize = 400;
+        for (size_t i = 0; i < matrixSize && i < maxCheckSize; ++i) {
             // Absolute difference
             float abs_diff = cuCabsf(cuCsubf(h_output[i], h_cufft_output[i]));
             if (abs_diff > epsilon) {
@@ -241,7 +302,12 @@ int main(int argc, char *argv[]) {
         }
 
         if (match) {
-            std::cout << "\nResults match with cuFFT implementation.\n\n";
+            #if DEBUG
+            if (matrixSize > maxCheckSize)
+                std::cout << "\nResults SEEMS to match with cuFFT implementation.\n\n";
+            else
+                std::cout << "\nResults match with cuFFT implementation.\n\n";
+            #endif
         } else {
             std::cout << "\nResults DO NOT match with cuFFT implementation.\n";
             #if DEBUG

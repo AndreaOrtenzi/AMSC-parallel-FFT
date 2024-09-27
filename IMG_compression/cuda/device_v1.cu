@@ -36,95 +36,6 @@ __device__ __forceinline__ unsigned int bitReverse(unsigned int x, const unsigne
     return j;
 }
 
-// Device function to perform 8-point FFT using warp shuffle
-__device__ void synch_fft8_new(cuFloatComplex *data) {
-    // Number of points
-    constexpr unsigned int n = BLOCK_SIZE;
-    constexpr unsigned int numBits = LOG_BLOCK_SIZE;
-
-    // Each thread index
-    unsigned int tidBlockY = threadIdx.y * blockDim.x;
-    unsigned int tidX = threadIdx.x;
-
-    // Load data from global memory into registers
-    cuFloatComplex x = data[tidX];
-
-    /* 
-    -----------------------------------------
-        Step 1: Bit-Reversal Permutation
-    -----------------------------------------
-    */
-    unsigned int j = bitReverse(tidX, numBits);
-
-    
-    // Use shuffle to get the value of thread j
-    cuFloatComplex xj;
-    xj.x = __shfl_sync(0xFF, x.x,tidBlockY + j);
-    xj.y = __shfl_sync(0xFF, x.y, tidBlockY + j);
-
-
-    /*
-    // Write the potentially swapped value back to data
-    data[tidX] = x;
-
-    // Synchronize to ensure all swaps are done
-    __syncwarp();
-    */
-
-    /*
-    -----------------------------------------
-        Step 2: Iterative FFT Stages
-    -----------------------------------------
-    */ 
-    // CHECK FROM HERE
-    for(unsigned int s = 1; s <= numBits; s++) {
-        unsigned int m = 1U << s;          // m = 2,4,8
-        unsigned int m2 = m >> 1;          // m/2 = 1,2,4
-        float angle = -2.0f * M_PIf / (float)m; // Twiddle factor angle
-        cuFloatComplex wm = make_cuFloatComplex(cosf(angle), sinf(angle)); // wm = e^{-2πi/m}
-
-        // Determine the group and position within the group
-        unsigned int group = tidX / m2;
-        unsigned int pos = tidX % m2;
-
-        // Compute twiddle factor w = wm^pos
-        // Efficient computation using angle multiplication
-        float angle_pos = pos * angle;
-        cuFloatComplex w = make_cuFloatComplex(cosf(angle_pos), sinf(angle_pos));
-
-        // Determine partner index for butterfly
-        unsigned int partner = tidX ^ m2;
-
-        // Read partner's value using shuffle
-        cuFloatComplex xj;
-        xj.x = __shfl_sync(0xFF, x.x, partner);
-        xj.y = __shfl_sync(0xFF, x.y, partner);
-
-        // Compute t = w * xj
-        cuFloatComplex t = cuCmulf(w, xj);
-
-        // Compute u = x (current thread's value)
-        cuFloatComplex u = x;
-
-        // Compute the new values for x[i] and x[j]
-        cuFloatComplex new_xi = cuCaddf(u, t); // x[i] = u + t
-        cuFloatComplex new_xj = cuCsubf(u, t); // x[j] = u - t
-
-        // Update x based on thread's position in the butterfly
-        if(tidX < partner) {
-            x = new_xi;
-        } else {
-            x = new_xj;
-        }
-
-        // Write the updated value back to data
-        data[tidX] = x;
-
-        // Synchronize threads before the next stage
-        __syncwarp();
-    }
-}
-
 __device__ void synch_fft8(cuFloatComplex *data) {
     // Number of points
     constexpr unsigned int n = BLOCK_SIZE;
@@ -147,20 +58,6 @@ __device__ void synch_fft8(cuFloatComplex *data) {
 
     data[j] = x;
     __syncwarp();
-    // Use shuffle to get the value of thread j
-    /*
-        cuFloatComplex xj;
-        xj.x = __shfl_sync(0xFF, x.x,tidBlockY + j);
-        xj.y = __shfl_sync(0xFF, x.y, tidBlockY + j);
-    */
-
-    /*
-    // Write the potentially swapped value back to data
-    data[tidX] = x;
-
-    // Synchronize to ensure all swaps are done
-    __syncwarp();
-    */
 
     /*
     -----------------------------------------
@@ -199,7 +96,9 @@ __device__ void synch_fft8(cuFloatComplex *data) {
         data[threadIdx.x] = cuCaddf(t, u);
 
         #if DEBUG
-            printf("Thread tidx= %d; tidBlocky = %d; s = %d; u = (%.2f,%.2f); t = (%.2f,%.2f)\n", tidX, tidBlockY, s, u.x, u.y, t.x, t.y);
+            if (tidBlockY == 0) {
+                printf("Thread tidx= %d; tidBlocky = %d; s = %d; u = (%.2f,%.2f); t = (%.2f,%.2f)\n", tidX, tidBlockY, s, u.x, u.y, t.x, t.y);
+            }
         #endif
         
         /*
@@ -238,17 +137,29 @@ __global__ void fftQuantizeKernel(cuFloatComplex *input, cuFloatComplex *output,
     // Load data into shared memory
     int localX = threadIdx.x;
     int localY = threadIdx.y;
+    int localIdx = localY * BLOCK_SIZE + localX;
 
     int globalX = blockIdx.x * BLOCK_SIZE + localX;
     int globalY = blockIdx.y * BLOCK_SIZE + localY;
-    int globalIdx = globalY * width + globalX;
 
-    if (globalX < width && globalY < height) {
-        blockData[localY][localX] = input[globalIdx];
-    } else {
-        // Pad with zeros but should never happen due to initial checks
-        blockData[localY][localX] = make_cuFloatComplex(0, 0);
-    }
+    // Version with original matrix
+    /* 
+    int globalIdx = globalY * width + globalX;
+    */
+
+    // Version with contiguous 8x8 submatrices
+    int numTilesX = width / BLOCK_SIZE;   // Number of horizontal 8x8 tiles in the matrix
+    int tileIdx = blockIdx.y * numTilesX + blockIdx.x;  // Flat index of the current tile
+
+    // Compute the offset for the current element within the submatrix
+    int tileOffset = tileIdx * BLOCK_SIZE * BLOCK_SIZE;
+
+    // Compute the global index in the reorganized layout
+    int globalIdx = tileOffset + localIdx;
+
+
+    assert(globalX < width && globalY < height && "Input matrix should be divisible by 8");
+    blockData[localY][localX] = input[globalIdx];
 
     __syncthreads();
 
@@ -284,10 +195,7 @@ __global__ void fftQuantizeKernel(cuFloatComplex *input, cuFloatComplex *output,
 
     
     // Apply quantization
-    int localIdx = localY * BLOCK_SIZE + localX;
     blockData[localY][localX] = cuCdivf(blockData[localY][localX], quantizationMatrix[localIdx]);
-    
-    // __syncthreads();
 
     // Write back to global memory
     if (globalX < width && globalY < height) {
