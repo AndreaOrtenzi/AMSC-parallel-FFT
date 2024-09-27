@@ -114,11 +114,9 @@ __global__ void fftQuantizeKernel(const cuFloatComplex *input, cuFloatComplex *o
 
     // Version with contiguous 8x8 submatrices    
     const unsigned int firstTileOffset = blockIdx.x * NUM_TILE_X_THREAD_BLOCK * BLOCK_SIZE * BLOCK_SIZE; // Offset for the first tile to process
-    const unsigned int globalIdxFirstTile = firstTileOffset + localIdx;
+    unsigned int globalIdx = firstTileOffset + localIdx;
 
-    for (int i = 0; i < NUM_TILE_X_THREAD_BLOCK; ++i) {
-        const unsigned int globalIdx = globalIdxFirstTile + i * BLOCK_SIZE * BLOCK_SIZE;
-
+    for (int i = 0; i < NUM_TILE_X_THREAD_BLOCK && globalIdx < width*height; ++i) {
         cuFloatComplex localData = input[globalIdx];
 
         // Perform FFT on rows
@@ -152,5 +150,6 @@ __global__ void fftQuantizeKernel(const cuFloatComplex *input, cuFloatComplex *o
         
         // Apply quantization and write back to global memory
         output[globalIdx] = cuCdivf(localData, quantizationMatrix[localIdx]);
+        globalIdx += BLOCK_SIZE * BLOCK_SIZE;
     }
 }
